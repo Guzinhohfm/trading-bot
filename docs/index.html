@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trading bot — specs</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #e7e5e4;
+      --paper: #fafaf9;
+      --side: #1c1917;
+      --side-ink: #f5f5f4;
+      --code: #f5f5f4;
+      --accent: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.6 "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 18px;
+      background: var(--side);
+      color: var(--side-ink);
+    }
+    nav p {
+      margin: 0 0 18px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #a8a29e;
+    }
+    nav a {
+      display: block;
+      color: inherit;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+    nav a:hover { background: #292524; }
+    .nav-h1 {
+      margin-top: 14px;
+      padding: 6px 8px;
+      font-weight: 650;
+    }
+    .nav-h2 {
+      padding: 3px 8px 3px 18px;
+      font-size: 14px;
+      color: #d6d3d1;
+    }
+    main {
+      max-width: 760px;
+      padding: 40px 48px 80px;
+    }
+    article + article {
+      margin-top: 48px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 32px;
+      line-height: 1.2;
+    }
+    h2 {
+      margin: 28px 0 8px;
+      font-size: 18px;
+    }
+    p, li { color: var(--ink); }
+    ul { margin: 8px 0 12px; padding-left: 22px; }
+    li { margin: 4px 0; }
+    code {
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 0.92em;
+      background: var(--code);
+      border-radius: 4px;
+      padding: 0 4px;
+    }
+    pre {
+      overflow: auto;
+      padding: 14px 16px;
+      background: #292524;
+      color: #f5f5f4;
+      border-radius: 8px;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+    strong { color: var(--accent); }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+      nav {
+        position: static;
+        height: auto;
+      }
+      main { padding: 24px 18px 48px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <p>Specs</p>
+      <a class="nav-h1" href="#trading-bot">Trading bot</a>
+<a class="nav-h2" href="#trading-bot-documentacao">Documentacao</a>
+<a class="nav-h2" href="#trading-bot-python-na-imagem">Python na imagem</a>
+<a class="nav-h2" href="#trading-bot-banco">Banco</a>
+<a class="nav-h2" href="#trading-bot-flags-de-modo">Flags de modo</a>
+<a class="nav-h2" href="#trading-bot-csv-de-backtest">CSV de backtest</a>
+<a class="nav-h1" href="#indicadores">Indicadores</a>
+<a class="nav-h2" href="#indicadores-objetivo">Objetivo</a>
+<a class="nav-h2" href="#indicadores-invariantes">Invariantes</a>
+<a class="nav-h2" href="#indicadores-fora-de-escopo">Fora de escopo</a>
+<a class="nav-h1" href="#estrategia-v1">Estrategia V1</a>
+<a class="nav-h2" href="#estrategia-v1-objetivo">Objetivo</a>
+<a class="nav-h2" href="#estrategia-v1-contrato">Contrato</a>
+<a class="nav-h2" href="#estrategia-v1-invariantes">Invariantes</a>
+<a class="nav-h2" href="#estrategia-v1-fora-de-escopo">Fora de escopo</a>
+<a class="nav-h1" href="#risco">Risco</a>
+<a class="nav-h2" href="#risco-objetivo">Objetivo</a>
+<a class="nav-h2" href="#risco-invariantes">Invariantes</a>
+<a class="nav-h2" href="#risco-fora-de-escopo">Fora de escopo</a>
+<a class="nav-h1" href="#backtest">Backtest</a>
+<a class="nav-h2" href="#backtest-objetivo">Objetivo</a>
+<a class="nav-h2" href="#backtest-invariantes">Invariantes</a>
+<a class="nav-h2" href="#backtest-uso">Uso</a>
+    </nav>
+    <main>
+      <article>
+<h1 id="trading-bot">Trading bot</h1>
+<p>Robo long-only de BTCUSDT. Calcula indicadores, a estrategia EMA + RSI + volume, o risco e um backtest. Nao envia ordem real.</p>
+<p>Stop de 5% do preco, alvo 2 para 1, pausa do dia em -5% ou +2%. Paper e testnet so depois da validacao de 2026 fechar positiva, com a regra congelada em 2024-2025.</p>
+<p>Parametros iniciais de pesquisa, sem promessa de resultado.</p>
+<h2 id="trading-bot-documentacao">Documentacao</h2>
+<p>As regras estao em <code>specs/</code>. O HTML compilado fica em <code>docs/index.html</code>. Depois de mudar um Markdown:</p>
+<pre><code>python scripts/build_docs.py</code></pre>
+<h2 id="trading-bot-python-na-imagem">Python na imagem</h2>
+<p>O codigo roda em <code>python:3.12-slim</code>. Nao e preciso instalar Python no Windows.</p>
+<pre><code>docker compose run --rm --no-deps app pytest -q
+docker compose run --rm --no-deps app python scripts/run_windows.py
+docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUSDT --csv data/BTCUSDT-5m.csv --start 2026-01-01 --end 2026-09-25 --capital 5000</code></pre>
+<p><code>scripts/run_windows.py</code> imprime o treino (2024-2025) e a validacao (2026). Sai 0 so quando o net da validacao e positivo. Isso nao liga <code>VALIDATION_PASSED</code>.</p>
+<h2 id="trading-bot-banco">Banco</h2>
+<p>Copie <code>.env.example</code> para <code>.env</code> e defina <code>POSTGRES_PASSWORD</code>. No servidor:</p>
+<pre><code>docker compose up -d db</code></pre>
+<p>O Postgres 16 do Compose publica a porta <strong>5433</strong> no Windows, porque a 5432 ja e do PostgreSQL local. Dentro da rede Docker o app continua em <code>db:5432</code>.</p>
+<p>O Postgres aplica <code>db/schema.sql</code> na primeira criacao do volume.</p>
+<h2 id="trading-bot-flags-de-modo">Flags de modo</h2>
+<p>No <code>.env</code>:</p>
+<ul>
+<li><code>MODE=backtest</code> para pesquisa
+</li>
+<li><code>VALIDATION_PASSED=false</code> ate a validacao de 2026 fechar no positivo
+</li>
+<li><code>LIVE_ENABLED=false</code> ate uma ordem real ser autorizada de proposito
+</li>
+</ul>
+<p>Paper, testnet e live recusam subir sem <code>VALIDATION_PASSED=true</code>. Live ainda exige <code>LIVE_ENABLED=true</code>.</p>
+<h2 id="trading-bot-csv-de-backtest">CSV de backtest</h2>
+<p>Colunas: <code>timestamp,open,high,low,close,volume</code>.</p>
+<p>Os candles publicos de 5 minutos ficam em <code>data/</code>, fora do git. Para baixar de novo:</p>
+<pre><code>python scripts/fetch_klines.py</code></pre>
+<p>As janelas de pesquisa juntam esses candles em barras de 1 hora.</p>
+</article>
+<article>
+<h1 id="indicadores">Indicadores</h1>
+<h2 id="indicadores-objetivo">Objetivo</h2>
+<p>Calcular EMA, RSI, ATR e media de volume com o mesmo metodo no backtest e no robo.</p>
+<h2 id="indicadores-invariantes">Invariantes</h2>
+<ul>
+<li>EMA usa o fechamento. <code>alpha = 2 / (N + 1)</code>. A semente e a media simples dos primeiros N fechamentos. A partir dai, <code>EMA_t = alpha * Close_t + (1 - alpha) * EMA_{t-1}</code>.
+</li>
+<li>EMA20 usa <code>alpha = 2/21</code>. EMA50 usa <code>alpha = 2/51</code>.
+</li>
+<li>RSI 14 e a versao de Wilder. O resultado fica entre 0 e 100. Sem perdas medias o RSI vale 100.
+</li>
+<li>ATR 14 usa o true range <code>max(high-low, abs(high-close anterior), abs(low-close anterior))</code> e a suavizacao de Wilder. O primeiro ATR e a media dos primeiros 14 true ranges.
+</li>
+<li>Media de volume e a media simples dos ultimos 20 volumes, incluindo o candle atual.
+</li>
+<li>Serie mais curta que o periodo devolve <code>None</code> naquela posicao. Indicador ausente nao gera sinal.
+</li>
+</ul>
+<h2 id="indicadores-fora-de-escopo">Fora de escopo</h2>
+<p>Nao ha sinal de compra nem acesso a rede neste modulo.</p>
+</article>
+<article>
+<h1 id="estrategia-v1">Estrategia V1</h1>
+<h2 id="estrategia-v1-objetivo">Objetivo</h2>
+<p>Transformar um candle fechado em <code>BUY</code>, <code>SELL</code> ou <code>HOLD</code>. A estrategia so le mercado.</p>
+<h2 id="estrategia-v1-contrato">Contrato</h2>
+<p><code>analyze(candle, indicators, position_open) -&gt; BUY | SELL | HOLD</code></p>
+<h2 id="estrategia-v1-invariantes">Invariantes</h2>
+<ul>
+<li><strong>BUY</strong> somente quando as cinco regras sao verdadeiras ao mesmo tempo:
+<ul>
+<li><code>EMA rapida &gt; EMA lenta</code> no candle de 1 hora
+</li>
+<li>o ultimo dia UTC ja fechado tambem tem <code>EMA rapida &gt; EMA lenta</code> nos fechamentos diarios. O dia corrente nao entra
+</li>
+<li><code>35 &lt;= RSI &lt;= 55</code>
+</li>
+<li><code>volume &gt; media de volume</code>
+</li>
+<li>a minima tocou a EMA rapida e o fechamento voltou para cima: <code>low &lt;= EMA rapida</code>, <code>close &gt; EMA rapida</code> e <code>(EMA rapida - low) / EMA rapida &lt;= 0.01</code>
+</li>
+</ul>
+</li>
+<li>O sinal vale em qualquer hora do dia UTC. Nao ha janela de pregao.
+</li>
+<li>Posicao aberta e limite diario nao bloqueiam o BUY aqui. O risco faz isso.
+</li>
+<li>A estrategia nao emite <strong>SELL</strong>. Stop e take profit fecham a operacao.
+</li>
+<li>Qualquer outra situacao, inclusive indicador ausente, fechamento ainda na EMA ou abaixo dela, devolve <strong>HOLD</strong>.
+</li>
+<li>Igualdade de volume com a media nao compra. Os limites de RSI 35 e 55 entram. O pavio de 1% abaixo da EMA rapida entra. Fechamento igual a EMA nao compra.
+</li>
+</ul>
+<h2 id="estrategia-v1-fora-de-escopo">Fora de escopo</h2>
+<p>Stop, take profit, tamanho da posicao e kill switch.</p>
+</article>
+<article>
+<h1 id="risco">Risco</h1>
+<h2 id="risco-objetivo">Objetivo</h2>
+<p>Impedir que um sinal BUY vire uma operacao inadequada e calcular stop, take profit e tamanho pelo risco. O robo opera so BTCUSDT.</p>
+<h2 id="risco-invariantes">Invariantes</h2>
+<ul>
+<li><code>stop_distance = entry * 5%</code>
+</li>
+<li><code>stop = entry - stop_distance</code> para long
+</li>
+<li><code>take_profit = entry + stop_distance * 2</code> (alvo 2 para 1)
+</li>
+<li><code>risk_amount = capital * 1%</code>
+</li>
+<li><code>position_size = min(risk_amount / 0.05, capital disponivel)</code>
+</li>
+<li>Exemplo: entrada 100000, capital 5000 produzem stop 95000, take profit 110000 e tamanho 1000.
+</li>
+<li>Rejeita a entrada quando ha posicao aberta no ativo, perda diaria no limite, meta diaria batida, kill switch, capital insuficiente ou stop invalido (<code>entry &lt;= stop</code> depois de alinhar o tick).
+</li>
+<li>Perda diaria = P&amp;L realizado do dia UTC + P&amp;L nao realizado. Pausa novas entradas quando <code>daily_pnl &lt;= -5%</code> do patrimonio no inicio do dia UTC. Posicao ja aberta continua podendo sair.
+</li>
+<li>Meta diaria = <code>+2%</code> do patrimonio no inicio do dia UTC (um trade de 2 para 1 com risco de 1%). Pausa novas entradas quando <code>daily_pnl &gt;= 2%</code>. Posicao ja aberta continua podendo sair.
+</li>
+<li>Quantidade desce para o step size. Nao passa do notional minimo nem da quantidade minima.
+</li>
+</ul>
+<h2 id="risco-fora-de-escopo">Fora de escopo</h2>
+<p>Envio de ordem para a exchange.</p>
+</article>
+<article>
+<h1 id="backtest">Backtest</h1>
+<h2 id="backtest-objetivo">Objetivo</h2>
+<p>Rodar a mesma estrategia e o mesmo risco sobre candles historicos e imprimir o relatorio da spec.</p>
+<h2 id="backtest-invariantes">Invariantes</h2>
+<ul>
+<li>O sinal nasce no fechamento. A entrada acontece no open do candle seguinte.
+</li>
+<li>Compra efetiva = preco * (1 + slippage). Venda efetiva = preco * (1 - slippage).
+</li>
+<li><code>Net P&amp;L = Gross P&amp;L - fees - slippage</code>.
+</li>
+<li>Se o mesmo candle toca o stop e o take profit, a saida e o stop. Se o open abre alem do stop, o fill usa o open.
+</li>
+<li>Saida por tendencia (<code>SELL</code> da estrategia) ocorre no fechamento, depois da checagem intra-bar. A V1 nao emite SELL: a saida dela e o stop ou o take profit.
+</li>
+<li>Perda diaria de 5% pausa entradas novas e ainda permite sair da posicao aberta.
+</li>
+<li>Meta diaria de 2% (um trade de 2 para 1 com risco de 1%) pausa entradas novas e ainda permite sair da posicao aberta.
+</li>
+<li>O relatorio mostra trades, wins, losses, win rate, gross, fees, slippage, net, return, max drawdown, profit factor, avg trade, avg winner, avg loser e expectancy.
+</li>
+<li>Profit factor = lucro bruto / abs(prejuizo bruto). Sem prejuizo, o fator fica indisponivel.
+</li>
+<li>Expectancy = probabilidade de ganho * media dos ganhos - probabilidade de perda * media das perdas (perda em valor positivo).
+</li>
+<li>Treino e <code>2024-01-01</code> a <code>2025-12-31</code>. Validacao e <code>2026-01-01</code> a <code>2026-09-25</code>. A regra fica congelada no treino. Nao existe busca de parametros.
+</li>
+<li>Paper, testnet e live exigem <code>VALIDATION_PASSED=true</code> depois que a validacao fecha com net positivo. Backtest nao exige o flag.
+</li>
+</ul>
+<h2 id="backtest-uso">Uso</h2>
+<pre><code>python -m app.main backtest --symbol BTCUSDT --csv candles.csv --start 2024-01-01 --end 2024-12-31 --capital 5000</code></pre>
+<p>O CSV tem as colunas <code>timestamp,open,high,low,close,volume</code>.</p>
+<p>As janelas de pesquisa usam barras de 1 hora. Cada hora junta os candles de 5 minutos daquele relogio UTC: open do primeiro, maximo do high, minimo do low, close do ultimo e soma do volume.</p>
+</article>
+    </main>
+  </div>
+</body>
+</html>

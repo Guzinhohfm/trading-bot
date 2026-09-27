@@ -5,7 +5,8 @@ from app.config.settings import get_settings
 from app.market.candles import Candle, IndicatorSnapshot
 from app.strategies.base import Signal
 from backtesting.broker import BacktestBroker, ClosedTrade, resolve_intrabar
-from backtesting.engine import IndicatorSeries, run_backtest
+from backtesting.data import aggregate_hours
+from backtesting.engine import IndicatorSeries, daily_trend_flags, run_backtest
 from backtesting.metrics import build_report, format_report, max_drawdown, profit_factor
 
 
@@ -60,7 +61,43 @@ def _candle(index: int, **overrides: str) -> Candle:
     )
 
 
-def test_stop_has_priority_when_both_levels_are_touched() -> None:
+def test_five_minute_bars_fold_into_one_hour() -> None:
+    bars = [
+        _candle(0, open="10", high="12", low="9", close="11", volume="1"),
+        _candle(1, open="11", high="15", low="8", close="14", volume="2"),
+    ]
+    hour = aggregate_hours(bars)
+    assert len(hour) == 1
+    assert hour[0].timestamp == datetime(2025, 1, 1, tzinfo=timezone.utc)
+    assert hour[0].open == Decimal("10")
+    assert hour[0].high == Decimal("15")
+    assert hour[0].low == Decimal("8")
+    assert hour[0].close == Decimal("14")
+    assert hour[0].volume == Decimal("3")
+
+
+def test_daily_trend_uses_the_previous_closed_day() -> None:
+    settings = get_settings(ema_fast=1, ema_slow=2)
+    candles = [
+        _candle(0, close="10"),
+        Candle(
+            timestamp=datetime(2025, 1, 2, tzinfo=timezone.utc),
+            open=Decimal("12"),
+            high=Decimal("12"),
+            low=Decimal("12"),
+            close=Decimal("12"),
+            volume=Decimal("1"),
+        ),
+        Candle(
+            timestamp=datetime(2025, 1, 3, tzinfo=timezone.utc),
+            open=Decimal("20"),
+            high=Decimal("20"),
+            low=Decimal("20"),
+            close=Decimal("20"),
+            volume=Decimal("1"),
+        ),
+    ]
+    assert daily_trend_flags(candles, settings) == [False, False, True]
     assert resolve_intrabar(
         Decimal("100"),
         Decimal("105"),
@@ -90,6 +127,7 @@ def test_entry_uses_next_open_and_daily_loss_blocks_the_next_one() -> None:
     settings = get_settings(
         capital=Decimal("1000"),
         risk_per_trade=Decimal("0.04"),
+        max_daily_loss=Decimal("0.03"),
         fee_rate=Decimal("0"),
         slippage=Decimal("0"),
         min_notional=Decimal("1"),
@@ -102,7 +140,7 @@ def test_entry_uses_next_open_and_daily_loss_blocks_the_next_one() -> None:
         indicators=_flat_indicators(len(candles)),
     )
     assert report.trades == 1
-    assert report.net_pnl == Decimal("-39.9996")
+    assert report.net_pnl == Decimal("-40.00")
 
 
 def test_trend_exit_happens_at_the_close() -> None:
@@ -121,7 +159,7 @@ def test_trend_exit_happens_at_the_close() -> None:
         _ExitOnTrend(),
         settings,
         symbol="ETHUSDT",
-        indicators=_flat_indicators(len(candles), atr="1"),
+        indicators=_flat_indicators(len(candles), atr="2"),
     )
     assert report.trades == 1
     assert report.net_pnl == Decimal("0")

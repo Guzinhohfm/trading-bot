@@ -20,3 +20,4 @@ class IndicatorSnapshot:
     rsi: Decimal | None
     atr: Decimal | None
     avg_volume: Decimal | None
+    daily_trend_up: bool = True

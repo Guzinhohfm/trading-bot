@@ -7,6 +7,32 @@ import pandas as pd
 from app.market.candles import Candle
 
 
+def aggregate_hours(candles: list[Candle]) -> list[Candle]:
+    grouped: dict[datetime, list[Candle]] = {}
+    order: list[datetime] = []
+    for candle in candles:
+        hour = candle.timestamp.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        if hour not in grouped:
+            order.append(hour)
+            grouped[hour] = []
+        grouped[hour].append(candle)
+
+    bars: list[Candle] = []
+    for hour in order:
+        chunk = grouped[hour]
+        bars.append(
+            Candle(
+                timestamp=hour,
+                open=chunk[0].open,
+                high=max(item.high for item in chunk),
+                low=min(item.low for item in chunk),
+                close=chunk[-1].close,
+                volume=sum((item.volume for item in chunk), Decimal("0")),
+            )
+        )
+    return bars
+
+
 def load_candles(
     path: str | Path,
     start: datetime | None = None,

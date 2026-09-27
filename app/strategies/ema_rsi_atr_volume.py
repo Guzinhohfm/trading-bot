@@ -15,14 +15,7 @@ class EmaRsiAtrVolumeStrategy:
         indicators: IndicatorSnapshot,
         position_open: bool,
     ) -> Signal:
-        if (
-            position_open
-            and indicators.ema_fast is not None
-            and indicators.ema_slow is not None
-            and indicators.ema_fast < indicators.ema_slow
-        ):
-            return Signal.SELL
-
+        del position_open
         if self._buy_rules(candle, indicators):
             return Signal.BUY
         return Signal.HOLD
@@ -36,11 +29,13 @@ class EmaRsiAtrVolumeStrategy:
         ):
             return False
         settings = self.settings
+        if indicators.ema_fast == 0:
+            return False
         trend_ok = indicators.ema_fast > indicators.ema_slow
         rsi_ok = settings.rsi_min <= indicators.rsi <= settings.rsi_max
         volume_ok = candle.volume > indicators.avg_volume
-        if indicators.ema_fast == 0:
-            return False
-        distance = abs(candle.close - indicators.ema_fast) / indicators.ema_fast
-        price_ok = distance <= settings.price_distance_max
-        return trend_ok and rsi_ok and volume_ok and price_ok
+        touched = candle.low <= indicators.ema_fast
+        reclaimed = candle.close > indicators.ema_fast
+        wick = (indicators.ema_fast - candle.low) / indicators.ema_fast
+        price_ok = touched and reclaimed and wick <= settings.price_distance_max
+        return trend_ok and rsi_ok and volume_ok and price_ok and indicators.daily_trend_up

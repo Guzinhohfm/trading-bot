@@ -14,3 +14,4 @@ pgdata/
 *.sqlite
 *.sqlite3
 candles.csv
+data/

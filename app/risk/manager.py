@@ -33,9 +33,10 @@ class RiskManager:
         capital: Decimal,
         available_capital: Decimal | None = None,
     ) -> TradePlan:
+        del atr
         settings = self.settings
         available = capital if available_capital is None else available_capital
-        stop_distance = atr * settings.stop_atr_multiplier
+        stop_distance = entry_price * settings.stop_pct
         stop_price = entry_price - stop_distance
         risk_amount = capital * settings.risk_per_trade
         stop_distance_pct = stop_distance / entry_price
@@ -56,6 +57,10 @@ class RiskManager:
         limit = self.settings.max_daily_loss * account.day_start_equity
         return account.daily_pnl <= -limit
 
+    def daily_profit_hit(self, account: AccountState) -> bool:
+        target = self.settings.daily_profit_target * account.day_start_equity
+        return account.daily_pnl >= target
+
     def approve_entry(
         self,
         entry_price: Decimal,
@@ -69,11 +74,12 @@ class RiskManager:
             return RiskVerdict(False, "position_open", None)
         if self.daily_loss_breached(account):
             return RiskVerdict(False, "daily_loss", None)
+        if self.daily_profit_hit(account):
+            return RiskVerdict(False, "daily_profit", None)
         if account.available_capital <= 0 or entry_price <= 0:
             return RiskVerdict(False, "no_capital", None)
-        if atr <= 0:
-            return RiskVerdict(False, "no_capital", None)
-        if atr * self.settings.stop_atr_multiplier <= 0:
+        stop_distance = entry_price * self.settings.stop_pct
+        if stop_distance <= 0:
             return RiskVerdict(False, "invalid_stop", None)
 
         raw = self.calculate_trade(

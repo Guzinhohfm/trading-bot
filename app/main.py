@@ -20,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     settings = Settings()
-    settings.assert_live_allowed()
+    settings.assert_forward_allowed()
     if args.capital is not None:
         settings = settings.model_copy(update={"capital": args.capital})
 
