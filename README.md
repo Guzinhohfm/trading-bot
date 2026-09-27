@@ -2,7 +2,7 @@
 
 Robo long-only de BTCUSDT. Calcula indicadores, a estrategia EMA + RSI + volume, o risco e um backtest. Nao envia ordem real.
 
-Stop de 5% do preco, alvo 2 para 1, pausa do dia em -5% ou +2%. Paper e testnet so depois da validacao de 2026 fechar positiva, com a regra congelada em 2024-2025.
+Stop de 5% do preco, alvo de 10%, risco de 1% por trade e pausa do dia em -2%. Depois de um stop, o robo espera 6 horas. A tendencia vem do candle de 4 horas ja fechado; a entrada, do candle de 1 hora. Paper e testnet so depois da validacao de 2026 fechar positiva, com a regra congelada em 2024-2025.
 
 Parametros iniciais de pesquisa, sem promessa de resultado.
 

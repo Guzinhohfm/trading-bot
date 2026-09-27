@@ -129,6 +129,7 @@
 <a class="nav-h1" href="#estrategia-v1">Estrategia V1</a>
 <a class="nav-h2" href="#estrategia-v1-objetivo">Objetivo</a>
 <a class="nav-h2" href="#estrategia-v1-contrato">Contrato</a>
+<a class="nav-h2" href="#estrategia-v1-timeframes">Timeframes</a>
 <a class="nav-h2" href="#estrategia-v1-invariantes">Invariantes</a>
 <a class="nav-h2" href="#estrategia-v1-fora-de-escopo">Fora de escopo</a>
 <a class="nav-h1" href="#risco">Risco</a>
@@ -144,7 +145,7 @@
       <article>
 <h1 id="trading-bot">Trading bot</h1>
 <p>Robo long-only de BTCUSDT. Calcula indicadores, a estrategia EMA + RSI + volume, o risco e um backtest. Nao envia ordem real.</p>
-<p>Stop de 5% do preco, alvo 2 para 1, pausa do dia em -5% ou +2%. Paper e testnet so depois da validacao de 2026 fechar positiva, com a regra congelada em 2024-2025.</p>
+<p>Stop de 5% do preco, alvo de 10%, risco de 1% por trade e pausa do dia em -2%. Depois de um stop, o robo espera 6 horas. A tendencia vem do candle de 4 horas ja fechado; a entrada, do candle de 1 hora. Paper e testnet so depois da validacao de 2026 fechar positiva, com a regra congelada em 2024-2025.</p>
 <p>Parametros iniciais de pesquisa, sem promessa de resultado.</p>
 <h2 id="trading-bot-documentacao">Documentacao</h2>
 <p>As regras estao em <code>specs/</code>. O HTML compilado fica em <code>docs/index.html</code>. Depois de mudar um Markdown:</p>
@@ -202,38 +203,45 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 <article>
 <h1 id="estrategia-v1">Estrategia V1</h1>
 <h2 id="estrategia-v1-objetivo">Objetivo</h2>
-<p>Transformar um candle fechado em <code>BUY</code>, <code>SELL</code> ou <code>HOLD</code>. A estrategia so le mercado.</p>
+<p>Transformar um candle de 1 hora fechado em <code>BUY</code> ou <code>HOLD</code> para BTCUSDT. A estrategia so le mercado. Ela nao precisa operar todo dia.</p>
 <h2 id="estrategia-v1-contrato">Contrato</h2>
-<p><code>analyze(candle, indicators, position_open) -&gt; BUY | SELL | HOLD</code></p>
+<p><code>analyze(candle, indicators, position_open) -&gt; BUY | HOLD</code></p>
+<h2 id="estrategia-v1-timeframes">Timeframes</h2>
+<ul>
+<li>4 horas define a tendencia, sempre no ultimo candle de 4 horas ja fechado.
+</li>
+<li>1 hora procura a entrada.
+</li>
+</ul>
 <h2 id="estrategia-v1-invariantes">Invariantes</h2>
 <ul>
-<li><strong>BUY</strong> somente quando as cinco regras sao verdadeiras ao mesmo tempo:
+<li><strong>BUY</strong> somente quando todas as regras abaixo sao verdadeiras:
 <ul>
-<li><code>EMA rapida &gt; EMA lenta</code> no candle de 1 hora
+<li>no 4h: <code>EMA50 &gt; EMA200</code>, <code>close &gt; EMA200</code> e <code>EMA50</code> atual maior que a <code>EMA50</code> de 5 candles de 4h atras
 </li>
-<li>o ultimo dia UTC ja fechado tambem tem <code>EMA rapida &gt; EMA lenta</code> nos fechamentos diarios. O dia corrente nao entra
+<li>no 1h: <code>|close - EMA20| / EMA20 &lt;= 0.015</code>
 </li>
-<li><code>35 &lt;= RSI &lt;= 55</code>
+<li><code>40 &lt;= RSI14 &lt;= 55</code>
 </li>
-<li><code>volume &gt; media de volume</code>
+<li><code>volume &gt;= 1.1 * media de 20 volumes</code>
 </li>
-<li>a minima tocou a EMA rapida e o fechamento voltou para cima: <code>low &lt;= EMA rapida</code>, <code>close &gt; EMA rapida</code> e <code>(EMA rapida - low) / EMA rapida &lt;= 0.01</code>
+<li><code>close &gt; high do candle anterior</code> e <code>close &gt; EMA20</code>
+</li>
+<li>a maxima dos ultimos 20 candles de 4h fechados e pelo menos <code>close * 1.10</code>
 </li>
 </ul>
 </li>
-<li>O sinal vale em qualquer hora do dia UTC. Nao ha janela de pregao.
-</li>
-<li>Posicao aberta e limite diario nao bloqueiam o BUY aqui. O risco faz isso.
+<li>Posicao aberta, perda diaria e cooldown nao bloqueiam o BUY aqui. O risco e o backtest fazem isso.
 </li>
 <li>A estrategia nao emite <strong>SELL</strong>. Stop e take profit fecham a operacao.
 </li>
-<li>Qualquer outra situacao, inclusive indicador ausente, fechamento ainda na EMA ou abaixo dela, devolve <strong>HOLD</strong>.
+<li>Qualquer regra falsa, ou indicador ausente, devolve <strong>HOLD</strong>.
 </li>
-<li>Igualdade de volume com a media nao compra. Os limites de RSI 35 e 55 entram. O pavio de 1% abaixo da EMA rapida entra. Fechamento igual a EMA nao compra.
+<li>Os limites de RSI 40 e 55 entram. Volume igual a 110% da media entra.
 </li>
 </ul>
 <h2 id="estrategia-v1-fora-de-escopo">Fora de escopo</h2>
-<p>Stop, take profit, tamanho da posicao e kill switch.</p>
+<p>Stop, take profit, tamanho da posicao, cooldown e kill switch.</p>
 </article>
 <article>
 <h1 id="risco">Risco</h1>
@@ -255,9 +263,9 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 </li>
 <li>Rejeita a entrada quando ha posicao aberta no ativo, perda diaria no limite, meta diaria batida, kill switch, capital insuficiente ou stop invalido (<code>entry &lt;= stop</code> depois de alinhar o tick).
 </li>
-<li>Perda diaria = P&amp;L realizado do dia UTC + P&amp;L nao realizado. Pausa novas entradas quando <code>daily_pnl &lt;= -5%</code> do patrimonio no inicio do dia UTC. Posicao ja aberta continua podendo sair.
+<li>Perda diaria = P&amp;L realizado do dia UTC + P&amp;L nao realizado. Pausa novas entradas quando <code>daily_pnl &lt;= -2%</code> do patrimonio no inicio do dia UTC. Posicao ja aberta continua podendo sair.
 </li>
-<li>Meta diaria = <code>+2%</code> do patrimonio no inicio do dia UTC (um trade de 2 para 1 com risco de 1%). Pausa novas entradas quando <code>daily_pnl &gt;= 2%</code>. Posicao ja aberta continua podendo sair.
+<li>Depois de uma saida no stop, novas entradas esperam 6 horas.
 </li>
 <li>Quantidade desce para o step size. Nao passa do notional minimo nem da quantidade minima.
 </li>
@@ -281,9 +289,9 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 </li>
 <li>Saida por tendencia (<code>SELL</code> da estrategia) ocorre no fechamento, depois da checagem intra-bar. A V1 nao emite SELL: a saida dela e o stop ou o take profit.
 </li>
-<li>Perda diaria de 5% pausa entradas novas e ainda permite sair da posicao aberta.
+<li>Perda diaria de 2% pausa entradas novas e ainda permite sair da posicao aberta.
 </li>
-<li>Meta diaria de 2% (um trade de 2 para 1 com risco de 1%) pausa entradas novas e ainda permite sair da posicao aberta.
+<li>Uma saida no stop abre cooldown de 6 horas para novas entradas.
 </li>
 <li>O relatorio mostra trades, wins, losses, win rate, gross, fees, slippage, net, return, max drawdown, profit factor, avg trade, avg winner, avg loser e expectancy.
 </li>

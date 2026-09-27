@@ -27,6 +27,7 @@ class BacktestReport:
     avg_winner: Decimal
     avg_loser: Decimal
     expectancy: Decimal
+    max_loss_streak: int
 
 
 def max_drawdown(equity: list[Decimal]) -> Decimal:
@@ -97,6 +98,7 @@ def build_report(
         avg_winner=avg_winner,
         avg_loser=avg_loser,
         expectancy=expectancy,
+        max_loss_streak=_loss_streak(trades),
     )
 
 
@@ -136,9 +138,22 @@ def format_report(report: BacktestReport) -> str:
         f"Avg Winner:        {_money(report.avg_winner)}",
         f"Avg Loser:         {_money(report.avg_loser)}",
         f"Expectancy:        {_money(report.expectancy)}",
+        f"Maior sequencia:   {report.max_loss_streak} perdas",
         "══════════════════════════════════",
     ]
     return "\n".join(lines)
+
+
+def _loss_streak(trades: list[ClosedTrade]) -> int:
+    worst = 0
+    current = 0
+    for trade in trades:
+        if trade.net_pnl < 0:
+            current += 1
+            worst = max(worst, current)
+        else:
+            current = 0
+    return worst
 
 
 def _mean(values) -> Decimal:

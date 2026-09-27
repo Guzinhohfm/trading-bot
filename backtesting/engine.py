@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from app.config.settings import Settings
@@ -19,22 +19,29 @@ class IndicatorSeries:
     rsi: list[Decimal | None]
     atr: list[Decimal | None]
     avg_volume: list[Decimal | None]
-    daily_trend_up: list[bool] | None = None
+    trend_4h: list[bool] | None = None
+    previous_high: list[Decimal | None] | None = None
+    resistance: list[Decimal | None] | None = None
 
     def at(self, index: int) -> IndicatorSnapshot:
-        trend = True if self.daily_trend_up is None else self.daily_trend_up[index]
+        trend = False if self.trend_4h is None else self.trend_4h[index]
+        previous = None if self.previous_high is None else self.previous_high[index]
+        resistance = None if self.resistance is None else self.resistance[index]
         return IndicatorSnapshot(
             ema_fast=self.ema_fast[index],
             ema_slow=self.ema_slow[index],
             rsi=self.rsi[index],
             atr=self.atr[index],
             avg_volume=self.avg_volume[index],
-            daily_trend_up=trend,
+            trend_4h=trend,
+            previous_high=previous,
+            resistance=resistance,
         )
 
 
 def compute_indicators(candles: list[Candle], settings: Settings) -> IndicatorSeries:
     closes = [candle.close for candle in candles]
+    trend, previous, resistance = four_hour_context(candles, settings)
     return IndicatorSeries(
         ema_fast=ema(closes, settings.ema_fast),
         ema_slow=ema(closes, settings.ema_slow),
@@ -46,35 +53,75 @@ def compute_indicators(candles: list[Candle], settings: Settings) -> IndicatorSe
             settings.atr_period,
         ),
         avg_volume=average_volume([candle.volume for candle in candles], settings.volume_period),
-        daily_trend_up=daily_trend_flags(candles, settings),
+        trend_4h=trend,
+        previous_high=previous,
+        resistance=resistance,
     )
 
 
-def daily_trend_flags(candles: list[Candle], settings: Settings) -> list[bool]:
-    """Tendencia do ultimo dia UTC ja fechado. O dia corrente nao entra."""
-    days: list[date] = []
+def four_hour_context(
+    candles: list[Candle],
+    settings: Settings,
+) -> tuple[list[bool], list[Decimal | None], list[Decimal | None]]:
+    """Tendencia e resistencia do ultimo candle de 4h ja fechado."""
+    buckets: list[datetime] = []
     closes: list[Decimal] = []
+    highs: list[Decimal] = []
+    index_of: dict[datetime, int] = {}
     for candle in candles:
-        day = candle.timestamp.astimezone(timezone.utc).date()
-        if not days or days[-1] != day:
-            days.append(day)
+        bucket = _four_hour_open(candle.timestamp)
+        if bucket not in index_of:
+            index_of[bucket] = len(buckets)
+            buckets.append(bucket)
             closes.append(candle.close)
+            highs.append(candle.high)
         else:
             closes[-1] = candle.close
-    fast = ema(closes, settings.ema_fast)
-    slow = ema(closes, settings.ema_slow)
-    usable: bool | None = None
-    by_day: dict[date, bool] = {}
-    for index, day in enumerate(days):
-        by_day[day] = usable is True
-        if fast[index] is not None and slow[index] is not None:
-            usable = fast[index] > slow[index]
+            highs[-1] = max(highs[-1], candle.high)
+    ema50 = ema(closes, settings.ema_trend)
+    ema200 = ema(closes, settings.ema_trend_slow)
+    lookback = settings.ema_slope_lookback
+    trend_flags: list[bool] = []
+    resistances: list[Decimal | None] = []
+    previous = [None, *[candle.high for candle in candles[:-1]]]
+    for candle in candles:
+        completed = _completed_four_hour_index(candle.timestamp, index_of)
+        if completed is None:
+            trend_flags.append(False)
+            resistances.append(None)
+            continue
+        fast = ema50[completed]
+        slow = ema200[completed]
+        earlier = ema50[completed - lookback] if completed >= lookback else None
+        close = closes[completed]
+        trend_flags.append(
+            fast is not None
+            and slow is not None
+            and earlier is not None
+            and fast > slow
+            and close > slow
+            and fast > earlier
+        )
+        if completed + 1 < 20:
+            resistances.append(None)
         else:
-            usable = None
-    return [
-        by_day[candle.timestamp.astimezone(timezone.utc).date()]
-        for candle in candles
-    ]
+            resistances.append(max(highs[completed - 19 : completed + 1]))
+    return trend_flags, previous, resistances
+
+
+def _four_hour_open(timestamp: datetime) -> datetime:
+    moment = timestamp.astimezone(timezone.utc)
+    hour = moment.hour - (moment.hour % 4)
+    return moment.replace(hour=hour, minute=0, second=0, microsecond=0)
+
+
+def _completed_four_hour_index(timestamp: datetime, index_of: dict[datetime, int]) -> int | None:
+    moment = timestamp.astimezone(timezone.utc)
+    bucket = _four_hour_open(moment)
+    if moment.hour % 4 == 3:
+        return index_of[bucket]
+    previous = bucket - timedelta(hours=4)
+    return index_of.get(previous)
 
 
 def run_backtest(
@@ -97,6 +144,8 @@ def run_backtest(
     )
     position: OpenPosition | None = None
     pending_buy = False
+    pending_resistance: Decimal | None = None
+    cooldown_until: datetime | None = None
     closed: list[ClosedTrade] = []
     equity: list[Decimal] = []
     day: date | None = None
@@ -113,6 +162,11 @@ def run_backtest(
             realized_today = Decimal("0")
 
         if pending_buy and position is None:
+            cooled = cooldown_until is not None and candle.timestamp < cooldown_until
+            room_ok = (
+                pending_resistance is None
+                or pending_resistance >= candle.open * (Decimal(1) + settings.stop_pct * settings.reward_multiple)
+            )
             account = _account(
                 broker,
                 settings,
@@ -122,10 +176,11 @@ def run_backtest(
                 realized_today,
             )
             snapshot = series.at(index)
-            atr = snapshot.atr if snapshot.atr is not None else Decimal("0")
-            verdict = risk.approve_entry(candle.open, atr, account, filters)
+            atr_value = snapshot.atr if snapshot.atr is not None else Decimal("0")
+            verdict = risk.approve_entry(candle.open, atr_value, account, filters)
             pending_buy = False
-            if verdict.accepted and verdict.plan is not None:
+            pending_resistance = None
+            if not cooled and room_ok and verdict.accepted and verdict.plan is not None:
                 position, _order = broker.open_long(
                     candle.open,
                     verdict.plan.quantity,
@@ -148,16 +203,20 @@ def run_backtest(
                 realized_today += trade.net_pnl
                 closed.append(trade)
                 position = None
+                if reason == "stop":
+                    cooldown_until = candle.timestamp + timedelta(hours=settings.cooldown_hours)
 
         snapshot = series.at(index)
         signal = strategy.analyze(candle, snapshot, position is not None)
+        cooled = cooldown_until is not None and candle.timestamp < cooldown_until
         if signal is Signal.SELL and position is not None:
             trade = broker.close_long(position, candle.close, candle.timestamp, "trend")
             realized_today += trade.net_pnl
             closed.append(trade)
             position = None
-        elif signal is Signal.BUY and position is None and not pending_buy:
+        elif signal is Signal.BUY and position is None and not pending_buy and not cooled:
             pending_buy = True
+            pending_resistance = snapshot.resistance
 
         equity.append(broker.equity(position, candle.close))
 

@@ -16,7 +16,7 @@ SYMBOL = "BTCUSDT"
 
 def _run(settings, strategy, start: str, end: str) -> BacktestReport:
     start_at, end_at = parse_range(start, end)
-    warmup = None if start_at is None else start_at - timedelta(days=80)
+    warmup = None if start_at is None else start_at - timedelta(days=120)
     candles = aggregate_hours(load_candles(f"data/{SYMBOL}-5m.csv", warmup, end_at))
     return run_backtest(
         candles,

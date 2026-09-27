@@ -19,19 +19,24 @@ class Settings(BaseSettings):
     timeframe: str = "1h"
     ema_fast: int = 20
     ema_slow: int = 50
+    ema_trend: int = 50
+    ema_trend_slow: int = 200
+    ema_slope_lookback: int = 5
     rsi_period: int = 14
-    rsi_min: Decimal = Decimal("35")
+    rsi_min: Decimal = Decimal("40")
     rsi_max: Decimal = Decimal("55")
     atr_period: int = 14
     volume_period: int = 20
-    price_distance_max: Decimal = Decimal("0.01")
+    price_distance_max: Decimal = Decimal("0.015")
+    volume_factor: Decimal = Decimal("1.1")
     stop_atr_multiplier: Decimal = Decimal("1.5")
     stop_pct: Decimal = Decimal("0.05")
     min_stop_pct: Decimal = Decimal("0.05")
     reward_multiple: Decimal = Decimal("2")
     risk_per_trade: Decimal = Decimal("0.01")
-    max_daily_loss: Decimal = Decimal("0.05")
-    daily_profit_target: Decimal = Decimal("0.02")
+    max_daily_loss: Decimal = Decimal("0.02")
+    daily_profit_target: Decimal = Decimal("1")
+    cooldown_hours: int = 6
     fee_rate: Decimal = Decimal("0.001")
     slippage: Decimal = Decimal("0.0005")
     mode: Mode = Mode.BACKTEST
@@ -50,6 +55,7 @@ class Settings(BaseSettings):
         "rsi_min",
         "rsi_max",
         "price_distance_max",
+        "volume_factor",
         "stop_atr_multiplier",
         "stop_pct",
         "min_stop_pct",

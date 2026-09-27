@@ -6,7 +6,7 @@ from app.market.candles import Candle, IndicatorSnapshot
 from app.strategies.base import Signal
 from backtesting.broker import BacktestBroker, ClosedTrade, resolve_intrabar
 from backtesting.data import aggregate_hours
-from backtesting.engine import IndicatorSeries, daily_trend_flags, run_backtest
+from backtesting.engine import IndicatorSeries, four_hour_context, run_backtest
 from backtesting.metrics import build_report, format_report, max_drawdown, profit_factor
 
 
@@ -76,28 +76,25 @@ def test_five_minute_bars_fold_into_one_hour() -> None:
     assert hour[0].volume == Decimal("3")
 
 
-def test_daily_trend_uses_the_previous_closed_day() -> None:
-    settings = get_settings(ema_fast=1, ema_slow=2)
+def test_four_hour_trend_waits_for_the_closed_bucket() -> None:
+    settings = get_settings(ema_trend=1, ema_trend_slow=1, ema_slope_lookback=1)
+    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
     candles = [
-        _candle(0, close="10"),
         Candle(
-            timestamp=datetime(2025, 1, 2, tzinfo=timezone.utc),
-            open=Decimal("12"),
-            high=Decimal("12"),
-            low=Decimal("12"),
-            close=Decimal("12"),
+            timestamp=start + timedelta(hours=index),
+            open=Decimal("10"),
+            high=Decimal("11"),
+            low=Decimal("9"),
+            close=Decimal("10"),
             volume=Decimal("1"),
-        ),
-        Candle(
-            timestamp=datetime(2025, 1, 3, tzinfo=timezone.utc),
-            open=Decimal("20"),
-            high=Decimal("20"),
-            low=Decimal("20"),
-            close=Decimal("20"),
-            volume=Decimal("1"),
-        ),
+        )
+        for index in range(4)
     ]
-    assert daily_trend_flags(candles, settings) == [False, False, True]
+    trend, previous, resistance = four_hour_context(candles, settings)
+    assert trend == [False, False, False, False]
+    assert previous[0] is None
+    assert previous[1] == Decimal("11")
+    assert resistance == [None, None, None, None]
     assert resolve_intrabar(
         Decimal("100"),
         Decimal("105"),

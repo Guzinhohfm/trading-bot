@@ -55,12 +55,8 @@ def test_rejections() -> None:
     assert risk.approve_entry(entry, atr, _account(position_open=True), FILTERS).reason == "position_open"
     assert risk.approve_entry(entry, atr, _account(kill_switch=True), FILTERS).reason == "kill_switch"
     assert (
-        risk.approve_entry(entry, atr, _account(daily_pnl=Decimal("-250")), FILTERS).reason
+        risk.approve_entry(entry, atr, _account(daily_pnl=Decimal("-100")), FILTERS).reason
         == "daily_loss"
-    )
-    assert (
-        risk.approve_entry(entry, atr, _account(daily_pnl=Decimal("100")), FILTERS).reason
-        == "daily_profit"
     )
     assert risk.approve_entry(entry, atr, _account(available_capital=Decimal("0")), FILTERS).reason == "no_capital"
 

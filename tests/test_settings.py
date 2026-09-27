@@ -10,11 +10,13 @@ def test_defaults_match_the_spec() -> None:
     assert settings.symbol_list == ["BTCUSDT"]
     assert settings.timeframe == "1h"
     assert settings.ema_fast == 20
-    assert settings.ema_slow == 50
+    assert settings.ema_trend == 50
+    assert settings.ema_trend_slow == 200
+    assert settings.rsi_min == Decimal("40")
     assert settings.slippage == Decimal("0.0005")
     assert settings.stop_pct == Decimal("0.05")
-    assert settings.max_daily_loss == Decimal("0.05")
-    assert settings.daily_profit_target == Decimal("0.02")
+    assert settings.max_daily_loss == Decimal("0.02")
+    assert settings.cooldown_hours == 6
     assert settings.validation_passed is False
     assert settings.capital == Decimal("5000")
     assert settings.database_url.startswith("postgresql+")

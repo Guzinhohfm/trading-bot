@@ -21,21 +21,22 @@ class EmaRsiAtrVolumeStrategy:
         return Signal.HOLD
 
     def _buy_rules(self, candle: Candle, indicators: IndicatorSnapshot) -> bool:
+        ema20 = indicators.ema_fast
         if (
-            indicators.ema_fast is None
-            or indicators.ema_slow is None
+            ema20 is None
+            or ema20 == 0
             or indicators.rsi is None
             or indicators.avg_volume is None
+            or indicators.previous_high is None
+            or indicators.resistance is None
+            or not indicators.trend_4h
         ):
             return False
         settings = self.settings
-        if indicators.ema_fast == 0:
-            return False
-        trend_ok = indicators.ema_fast > indicators.ema_slow
+        distance = abs(candle.close - ema20) / ema20
+        pullback = distance <= settings.price_distance_max
         rsi_ok = settings.rsi_min <= indicators.rsi <= settings.rsi_max
-        volume_ok = candle.volume > indicators.avg_volume
-        touched = candle.low <= indicators.ema_fast
-        reclaimed = candle.close > indicators.ema_fast
-        wick = (indicators.ema_fast - candle.low) / indicators.ema_fast
-        price_ok = touched and reclaimed and wick <= settings.price_distance_max
-        return trend_ok and rsi_ok and volume_ok and price_ok and indicators.daily_trend_up
+        volume_ok = candle.volume >= indicators.avg_volume * settings.volume_factor
+        momentum = candle.close > indicators.previous_high and candle.close > ema20
+        room = indicators.resistance >= candle.close * (Decimal(1) + settings.stop_pct * settings.reward_multiple)
+        return pullback and rsi_ok and volume_ok and momentum and room
