@@ -90,11 +90,11 @@ def test_four_hour_trend_waits_for_the_closed_bucket() -> None:
         )
         for index in range(4)
     ]
-    trend, previous, resistance = four_hour_context(candles, settings)
-    assert trend == [False, False, False, False]
-    assert previous[0] is None
-    assert previous[1] == Decimal("11")
-    assert resistance == [None, None, None, None]
+    context = four_hour_context(candles, settings)
+    assert context.trend == [False, False, False, False]
+    assert context.previous_high[0] is None
+    assert context.previous_high[1] == Decimal("11")
+    assert context.ema50 == [None, None, None, Decimal("10")]
     assert resolve_intrabar(
         Decimal("100"),
         Decimal("105"),
@@ -102,6 +102,23 @@ def test_four_hour_trend_waits_for_the_closed_bucket() -> None:
         Decimal("98"),
         Decimal("104"),
     ) == (Decimal("98"), "stop")
+
+
+def test_gap_through_stop_is_reported_apart_from_the_planned_risk() -> None:
+    settings = get_settings(fee_rate=Decimal("0"), slippage=Decimal("0"), capital=Decimal("1000"))
+    broker = BacktestBroker(Decimal("1000"), settings)
+    when = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    position, _buy = broker.open_long(
+        Decimal("100"),
+        Decimal("1"),
+        Decimal("95"),
+        Decimal("110"),
+        when,
+        Decimal("5"),
+    )
+    trade = broker.close_long(position, Decimal("90"), when, "stop")
+    assert trade.planned_risk == Decimal("5")
+    assert trade.gap_loss == Decimal("5")
 
 
 def test_gap_through_stop_fills_at_the_open() -> None:
@@ -227,3 +244,20 @@ def test_profit_factor_expectancy_and_drawdown() -> None:
     assert "Profit Factor:" in text
     assert "Max Drawdown:" in text
     assert "Expectancy:" in text
+    logged = build_report(
+        symbol="BTCUSDT",
+        timeframe="1h",
+        start=moment,
+        end=moment,
+        initial_capital=Decimal("5000"),
+        trades=[],
+        equity=[Decimal("5000")],
+        candles_seen=4,
+        buy_signals=1,
+        funnel=(("trend_4h", 2), ("pullback", 1), ("entries", 1)),
+    )
+    logged_text = format_report(logged)
+    assert "Sinais BUY:" in logged_text
+    assert "Funil" in logged_text
+    assert "Tendência 4h" in logged_text
+    assert "Pullback" in logged_text

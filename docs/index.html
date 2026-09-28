@@ -131,6 +131,7 @@
 <a class="nav-h2" href="#estrategia-v1-contrato">Contrato</a>
 <a class="nav-h2" href="#estrategia-v1-timeframes">Timeframes</a>
 <a class="nav-h2" href="#estrategia-v1-invariantes">Invariantes</a>
+<a class="nav-h2" href="#estrategia-v1-outros-ativos">Outros ativos</a>
 <a class="nav-h2" href="#estrategia-v1-fora-de-escopo">Fora de escopo</a>
 <a class="nav-h1" href="#risco">Risco</a>
 <a class="nav-h2" href="#risco-objetivo">Objetivo</a>
@@ -140,15 +141,34 @@
 <a class="nav-h2" href="#backtest-objetivo">Objetivo</a>
 <a class="nav-h2" href="#backtest-invariantes">Invariantes</a>
 <a class="nav-h2" href="#backtest-uso">Uso</a>
+<a class="nav-h1" href="#estrategia-v2">Estrategia V2</a>
+<a class="nav-h2" href="#estrategia-v2-objetivo">Objetivo</a>
+<a class="nav-h2" href="#estrategia-v2-o-que-permanece">O que permanece</a>
+<a class="nav-h2" href="#estrategia-v2-o-que-a-matriz-varia">O que a matriz varia</a>
+<a class="nav-h2" href="#estrategia-v2-amostra">Amostra</a>
+<a class="nav-h2" href="#estrategia-v2-aprovacao">Aprovacao</a>
+<a class="nav-h1" href="#ate-a-ordem-real">Ate a ordem real</a>
+<a class="nav-h2" href="#ate-a-ordem-real-objetivo">Objetivo</a>
+<a class="nav-h2" href="#ate-a-ordem-real-ordem">Ordem</a>
+<a class="nav-h2" href="#ate-a-ordem-real-invariantes">Invariantes</a>
+<a class="nav-h2" href="#ate-a-ordem-real-fora-deste-passo">Fora deste passo</a>
+<a class="nav-h1" href="#outros-ativos">Outros ativos</a>
+<a class="nav-h2" href="#outros-ativos-objetivo">Objetivo</a>
+<a class="nav-h2" href="#outros-ativos-contrato">Contrato</a>
+<a class="nav-h2" href="#outros-ativos-curva-longa-de-cada-par">Curva longa de cada par</a>
+<a class="nav-h2" href="#outros-ativos-mesma-janela-contas-separadas">Mesma janela, contas separadas</a>
+<a class="nav-h2" href="#outros-ativos-trinta-dias">Trinta dias</a>
+<a class="nav-h2" href="#outros-ativos-decisao">Decisao</a>
+<a class="nav-h2" href="#outros-ativos-fora-de-escopo">Fora de escopo</a>
     </nav>
     <main>
       <article>
 <h1 id="trading-bot">Trading bot</h1>
-<p>Robo long-only de BTCUSDT. Calcula indicadores, a estrategia EMA + RSI + volume, o risco e um backtest. Nao envia ordem real.</p>
-<p>Stop de 5% do preco, alvo de 10%, risco de 1% por trade e pausa do dia em -2%. Depois de um stop, o robo espera 6 horas. A tendencia vem do candle de 4 horas ja fechado; a entrada, do candle de 1 hora. Paper e testnet so depois da validacao de 2026 fechar positiva, com a regra congelada em 2024-2025.</p>
+<p>Robo long-only de BTCUSDT. Calcula indicadores, a estrategia de tendencia no 4h e pullback no 1h, o risco e um backtest. Nao envia ordem real.</p>
+<p>Stop de 5% do preco, alvo de 10% (2 para 1), risco de 1% por trade e pausa do dia em -2%. Depois de um stop, o robo espera 6 horas. A tendencia vem do candle de 4 horas ja fechado; a entrada, do candle de 1 hora, depois que o candle anterior tocou a EMA20 e o atual fechou acima dela e da maxima anterior. O caminho ate uma ordem real esta em <code>specs/06-ate-a-ordem-real.md</code>. O passo atual e o paper residente de BTCUSDT, sem envio.</p>
 <p>Parametros iniciais de pesquisa, sem promessa de resultado.</p>
 <h2 id="trading-bot-documentacao">Documentacao</h2>
-<p>As regras estao em <code>specs/</code>. O HTML compilado fica em <code>docs/index.html</code>. Depois de mudar um Markdown:</p>
+<p>As regras estao em <code>specs/</code>. As medidas da V1 e dos outros pares estao em <code>docs/relatorio-estrategia-v1.md</code> e em <code>specs/07-ativos.md</code>. O simbolo oficial continua BTCUSDT. O HTML compilado fica em <code>docs/index.html</code>. Depois de mudar um Markdown:</p>
 <pre><code>python scripts/build_docs.py</code></pre>
 <h2 id="trading-bot-python-na-imagem">Python na imagem</h2>
 <p>O codigo roda em <code>python:3.12-slim</code>. Nao e preciso instalar Python no Windows.</p>
@@ -164,14 +184,16 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 <h2 id="trading-bot-flags-de-modo">Flags de modo</h2>
 <p>No <code>.env</code>:</p>
 <ul>
-<li><code>MODE=backtest</code> para pesquisa
+<li><code>MODE=backtest</code> para pesquisa. <code>paper</code> relê um CSV e nao envia ordem.
 </li>
-<li><code>VALIDATION_PASSED=false</code> ate a validacao de 2026 fechar no positivo
+<li><code>VALIDATION_PASSED=false</code>. Testnet e live continuam recusados.
 </li>
-<li><code>LIVE_ENABLED=false</code> ate uma ordem real ser autorizada de proposito
+<li><code>LIVE_ENABLED=false</code> ate uma ordem real ser autorizada de proposito.
 </li>
 </ul>
-<p>Paper, testnet e live recusam subir sem <code>VALIDATION_PASSED=true</code>. Live ainda exige <code>LIVE_ENABLED=true</code>.</p>
+<pre><code>docker compose run --rm --no-deps app python -m app.main paper --symbol BTCUSDT --csv data/BTCUSDT-5m.csv --start 2026-01-01 --end 2026-09-25 --capital 5000
+docker compose run --rm app python -m app.main sync-public --symbol BTCUSDT --days 7 --capital 5000
+docker compose up -d paper</code></pre>
 <h2 id="trading-bot-csv-de-backtest">CSV de backtest</h2>
 <p>Colunas: <code>timestamp,open,high,low,close,volume</code>.</p>
 <p>Os candles publicos de 5 minutos ficam em <code>data/</code>, fora do git. Para baixar de novo:</p>
@@ -217,19 +239,19 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 <ul>
 <li><strong>BUY</strong> somente quando todas as regras abaixo sao verdadeiras:
 <ul>
-<li>no 4h: <code>EMA50 &gt; EMA200</code>, <code>close &gt; EMA200</code> e <code>EMA50</code> atual maior que a <code>EMA50</code> de 5 candles de 4h atras
+<li>no 4h fechado: <code>EMA50 &gt; EMA200</code>, <code>close &gt; EMA200</code> e <code>EMA50</code> atual maior que a <code>EMA50</code> de 5 candles de 4h atras
 </li>
-<li>no 1h: <code>|close - EMA20| / EMA20 &lt;= 0.015</code>
+<li>no 1h, o candle anterior tocou ou perdeu a EMA20: <code>low anterior &lt;= EMA20 anterior</code>
 </li>
 <li><code>40 &lt;= RSI14 &lt;= 55</code>
 </li>
-<li><code>volume &gt;= 1.1 * media de 20 volumes</code>
-</li>
-<li><code>close &gt; high do candle anterior</code> e <code>close &gt; EMA20</code>
-</li>
-<li>a maxima dos ultimos 20 candles de 4h fechados e pelo menos <code>close * 1.10</code>
+<li>no 1h, a recuperacao fecha: <code>close &gt; EMA20</code> e <code>close &gt; high do candle de 1h anterior</code>
 </li>
 </ul>
+</li>
+<li>A inclinacao da EMA50 e apenas <code>EMA50[t] &gt; EMA50[t-5]</code>. Nao ha piso percentual.
+</li>
+<li>Volume e a distancia ate a maxima recente nao entram nesta versao.
 </li>
 <li>Posicao aberta, perda diaria e cooldown nao bloqueiam o BUY aqui. O risco e o backtest fazem isso.
 </li>
@@ -237,29 +259,35 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 </li>
 <li>Qualquer regra falsa, ou indicador ausente, devolve <strong>HOLD</strong>.
 </li>
-<li>Os limites de RSI 40 e 55 entram. Volume igual a 110% da media entra.
+<li><code>explain</code> devolve <code>BUY</code> ou <code>HOLD</code> e marca cada regra que falhou.
+</li>
+<li>Os limites de RSI 40 e 55 entram. Low igual a EMA20 anterior conta como toque.
 </li>
 </ul>
+<h2 id="estrategia-v1-outros-ativos">Outros ativos</h2>
+<p>ETH, SOL, BNB, TRX, XRP e DOGE foram medidos com esta mesma regra. O resultado esta em <code>specs/07-ativos.md</code>. Nenhum substitui BTCUSDT e nenhum muda os limites desta spec.</p>
 <h2 id="estrategia-v1-fora-de-escopo">Fora de escopo</h2>
 <p>Stop, take profit, tamanho da posicao, cooldown e kill switch.</p>
 </article>
 <article>
 <h1 id="risco">Risco</h1>
 <h2 id="risco-objetivo">Objetivo</h2>
-<p>Impedir que um sinal BUY vire uma operacao inadequada e calcular stop, take profit e tamanho pelo risco. O robo opera so BTCUSDT.</p>
+<p>Impedir que um sinal BUY vire uma operacao inadequada e calcular stop, take profit e tamanho pelo risco. O robo opera so BTCUSDT. Medidas em outros pares estao em <code>specs/07-ativos.md</code> e nao alteram este contrato.</p>
 <h2 id="risco-invariantes">Invariantes</h2>
 <ul>
 <li><code>stop_distance = entry * 5%</code>
 </li>
 <li><code>stop = entry - stop_distance</code> para long
 </li>
-<li><code>take_profit = entry + stop_distance * 2</code> (alvo 2 para 1)
+<li><code>take_profit = entry + stop_distance * 2</code> (alvo 2 para 1, +10%)
 </li>
 <li><code>risk_amount = capital * 1%</code>
 </li>
 <li><code>position_size = min(risk_amount / 0.05, capital disponivel)</code>
 </li>
 <li>Exemplo: entrada 100000, capital 5000 produzem stop 95000, take profit 110000 e tamanho 1000.
+</li>
+<li>O risco planejado e a perda se o stop for respeitado, antes de taxa e slippage. Gap, taxa e slippage podem fazer a perda realizada passar desse valor.
 </li>
 <li>Rejeita a entrada quando ha posicao aberta no ativo, perda diaria no limite, meta diaria batida, kill switch, capital insuficiente ou stop invalido (<code>entry &lt;= stop</code> depois de alinhar o tick).
 </li>
@@ -295,19 +323,171 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 </li>
 <li>O relatorio mostra trades, wins, losses, win rate, gross, fees, slippage, net, return, max drawdown, profit factor, avg trade, avg winner, avg loser e expectancy.
 </li>
+<li>O relatorio mostra um funil: candles, tendencia 4h, pullback, RSI, recuperacao e entradas aceitas pelo risco. Uma etapa so conta o candle que passou em todas as anteriores. Volume e resistencia nao entram nesta versao.
+</li>
+<li>O relatorio separa risco planejado, perda realizada e gap. Gap e a distancia alem do stop quando a saida preenche no open.
+</li>
+<li>Janelas independentes recomecam em 5000. O intervalo continuo de <code>2024-01-01</code> a <code>2026-09-25</code> usa uma unica curva de capital.
+</li>
+<li>Cada janela aquece 120 dias antes do inicio e so conta operacao dentro do periodo.
+</li>
 <li>Profit factor = lucro bruto / abs(prejuizo bruto). Sem prejuizo, o fator fica indisponivel.
 </li>
 <li>Expectancy = probabilidade de ganho * media dos ganhos - probabilidade de perda * media das perdas (perda em valor positivo).
 </li>
 <li>Treino e <code>2024-01-01</code> a <code>2025-12-31</code>. Validacao e <code>2026-01-01</code> a <code>2026-09-25</code>. A regra fica congelada no treino. Nao existe busca de parametros.
 </li>
-<li>Paper, testnet e live exigem <code>VALIDATION_PASSED=true</code> depois que a validacao fecha com net positivo. Backtest nao exige o flag.
+<li>Paper local nao envia ordem e nao exige <code>VALIDATION_PASSED</code>. Testnet e live exigem o flag ligado a mao. O caminho esta na spec da ordem real.
 </li>
 </ul>
 <h2 id="backtest-uso">Uso</h2>
 <pre><code>python -m app.main backtest --symbol BTCUSDT --csv candles.csv --start 2024-01-01 --end 2024-12-31 --capital 5000</code></pre>
 <p>O CSV tem as colunas <code>timestamp,open,high,low,close,volume</code>.</p>
 <p>As janelas de pesquisa usam barras de 1 hora. Cada hora junta os candles de 5 minutos daquele relogio UTC: open do primeiro, maximo do high, minimo do low, close do ultimo e soma do volume.</p>
+</article>
+<article>
+<h1 id="estrategia-v2">Estrategia V2</h1>
+<h2 id="estrategia-v2-objetivo">Objetivo</h2>
+<p>Medir, ao lado da V1, se regime, qualidade da recuperacao e ATR mudam o resultado. A V1 continua sendo a regra padrao. Nenhum numero desta matriz substitui a V1 so porque ficou melhor numa janela.</p>
+<h2 id="estrategia-v2-o-que-permanece">O que permanece</h2>
+<ul>
+<li>Gatilho <code>previous_high</code>: <code>close &gt; EMA20</code> e <code>close &gt; high</code> anterior.
+</li>
+<li>RSI entre 40 e 55.
+</li>
+<li>Sem filtro de volume.
+</li>
+<li>Sem filtro de resistencia dos ultimos 20 candles de 4 horas.
+</li>
+<li>Stop 5%, alvo 10%, risco 1%, pausa diaria em -2%, cooldown de 6 horas, uma posicao.
+</li>
+</ul>
+<h2 id="estrategia-v2-o-que-a-matriz-varia">O que a matriz varia</h2>
+<p>Cada item abaixo so entra quando o teste pede. O padrao de cada um reproduz a V1.</p>
+<ul>
+<li>Separacao <code>(EMA50 - EMA200) / EMA200</code> em 0%, 0,25%, 0,50%, 1% e 2%.
+</li>
+<li>Inclinacao <code>(EMA50[t] - EMA50[t-5]) / EMA50[t-5]</code> em 0%, 0,10%, 0,25% e 0,50%.
+</li>
+<li>RSI atual maior que o RSI anterior.
+</li>
+<li>Qualidade do candle: sem filtro, candle positivo, fechamento no topo 30% ou no topo 20%.
+</li>
+<li>ATR de 4 horas sobre o fechamento de 4 horas: sem filtro, pelo menos 1%, no maximo 2,5%, ou entre 1% e 2,5%.
+</li>
+<li>Uma variante separada usa o diario para a tendencia e mantem 4 horas e 1 hora como estao. Ela nao entra na matriz dos outros filtros.
+</li>
+</ul>
+<h2 id="estrategia-v2-amostra">Amostra</h2>
+<p>A V1 e a matriz sao lidas em anos independentes desde 2018, com capital reiniciado em 5000. A escolha de parametro, se algum dia houver, olha 2018–2021 e so depois 2022–2023. 2024–2026 ja foi usado para desenhar a V1 e fica como janela ja vista.</p>
+<h2 id="estrategia-v2-aprovacao">Aprovacao</h2>
+<p>Uma configuracao so merece conversa se, na busca e na confirmacao, o liquido for positivo, o profit factor passar de 1, a expectativa por trade for positiva e houver trades suficientes. Ela tambem precisa continuar razoavel quando a separacao ou a inclinacao vizinha muda pouco. Isso nao liga paper, testnet nem live.</p>
+</article>
+<article>
+<h1 id="ate-a-ordem-real">Ate a ordem real</h1>
+<h2 id="ate-a-ordem-real-objetivo">Objetivo</h2>
+<p>Chegar a uma ordem na Binance sem pular etapa. Cada passo usa a regra V1 congelada. Nenhum passo liga <code>VALIDATION_PASSED</code> nem <code>LIVE_ENABLED</code>.</p>
+<h2 id="ate-a-ordem-real-ordem">Ordem</h2>
+<p>1. Paper local. O mesmo motor do backtest relê um CSV, simula fill, taxa e slippage, e imprime o relatorio. Nenhuma chamada de ordem. 2. Leitura publica. <code>sync-public</code> busca so candles fechados em <code>GET /api/v3/klines</code>, roda a V1 e grava candles, decisoes, trades simulados e uma linha em <code>bot_logs</code>. Sem chave e sem ordem. Repetir o comando atualiza o diario e acrescenta outra linha de resumo. 3. Paper residente. O mesmo <code>sync-public --resident</code>, em BTCUSDT. O processo espera a hora UTC fechar, espera 15 segundos e repete a leitura. Nao escolhe filtro novo. 4. Conferencia. Os trades do paper no mesmo CSV tem de bater com o backtest. 5. Observacao. O servico <code>paper</code> fica ligado por semanas, so em BTCUSDT, rejogando os ultimos 30 dias a cada hora fechada. O objetivo e ver se o diario ao vivo continua igual ao backtest. Uma semana boa nao autoriza a etapa seguinte e nao serve para trocar de ativo nem de filtro. A V1 fez cerca de 12 trades por ano, entao semanas podem fechar zero trades. 6. Testnet. Ordens assinadas apenas na URL de testnet, com <code>TESTNET_ENABLED=true</code>. Dinheiro ficticio da Binance. 7. Conta real. Chave sem permissao de saque, <code>LIVE_ENABLED=true</code> e <code>VALIDATION_PASSED=true</code>, ligados a mao, depois da testnet repetir o diario do paper.</p>
+<p>Os passos 1, 2 e 3 estao implementados. O passo 3 fica de pe enquanto o servico <code>paper</code> estiver ligado. O passo 4 ainda nao tem uma conferencia automatica separada: o paper ja usa o mesmo motor do backtest.</p>
+<h2 id="ate-a-ordem-real-invariantes">Invariantes</h2>
+<ul>
+<li>Paper nao envia ordem. O gateway de paper recusa <code>submit</code>.
+</li>
+<li>Paper roda com <code>VALIDATION_PASSED=false</code>.
+</li>
+<li>Testnet e live continuam recusados sem <code>VALIDATION_PASSED=true</code>.
+</li>
+<li>Live continua recusado sem <code>LIVE_ENABLED=true</code>.
+</li>
+<li><code>MODE=live</code> nao pode executar o comando de paper.
+</li>
+<li>A estrategia, o stop de 5%, o alvo de 10% e o risco de 1% sao os da V1. Este caminho nao escolhe filtro novo.
+</li>
+</ul>
+<h2 id="ate-a-ordem-real-fora-deste-passo">Fora deste passo</h2>
+<p>Dashboard, chave de API, URL de testnet e qualquer <code>POST /api/v3/order</code>.</p>
+</article>
+<article>
+<h1 id="outros-ativos">Outros ativos</h1>
+<h2 id="outros-ativos-objetivo">Objetivo</h2>
+<p>Registrar o que a V1 fez fora do BTCUSDT. Esta spec nao troca a regra, nao mistura capital e nao autoriza ordem.</p>
+<h2 id="outros-ativos-contrato">Contrato</h2>
+<ul>
+<li>O simbolo oficial continua BTCUSDT. <code>symbols</code> no settings continua <code>BTCUSDT</code>.
+</li>
+<li>Cada par foi medido sozinho, com capital de 5000, stop de 5%, alvo de 10% e risco de 1%.
+</li>
+<li>A medicao comeca no primeiro 1 de janeiro que tem 120 dias de aquecimento antes dele.
+</li>
+<li>Somar liquidos de contas separadas nao e uma carteira. Uma conta com uma posicao nao segura trades que abrem na mesma hora.
+</li>
+<li>Subir de preco nao e lucro da regra. Segurar o ativo e a curva da V1 sao contas diferentes.
+</li>
+<li>Nenhuma destas medidas liga <code>VALIDATION_PASSED</code> nem <code>LIVE_ENABLED</code>.
+</li>
+</ul>
+<h2 id="outros-ativos-curva-longa-de-cada-par">Curva longa de cada par</h2>
+<p>Capital de 5000 em cada curva continua. O BTC vai de 01/01/2018 a 25/09/2026. Os outros pares comecam quando o aquecimento existe. Cada linha e trades, liquido, retorno, profit factor, drawdown e o rendimento de segurar o ativo.</p>
+<ul>
+<li>BTCUSDT, 2018 a 2026: 157 trades, 1.875,17, 37,50%, profit factor 1,53, drawdown 9,06%. Segurar rendeu 521,33%.
+</li>
+<li>TRXUSDT, 2019 a 2026: 207 trades, 1.260,78, 25,22%, profit factor 1,30, drawdown 10,15%. Segurar rendeu 1.717,30%.
+</li>
+<li>BNBUSDT, 2019 a 2026: 231 trades, 933,08, 18,66%, profit factor 1,23, drawdown 17,52%. Segurar rendeu 12.761,07%.
+</li>
+<li>ETHUSDT, 2018 a 2026: 203 trades, 787,26, 15,75%, profit factor 1,22, drawdown 12,24%. Segurar rendeu 269,92%.
+</li>
+<li>DOGEUSDT, 2020 a 2026: 199 trades, −712,36, −14,25%, profit factor 0,98, drawdown 20,59%. Segurar rendeu 4.828,05%.
+</li>
+<li>SOLUSDT, 2021 a 2026: 230 trades, −841,00, −16,82%, profit factor 0,98, drawdown 21,81%. Segurar rendeu 7.810,24%.
+</li>
+<li>XRPUSDT, 2019 a 2026: 213 trades, −1.256,49, −25,13%, profit factor 0,92, drawdown 30,45%. Segurar rendeu 349,21%.
+</li>
+</ul>
+<p>O BTC e a melhor curva da regra por capital aplicado. O TRX e o melhor dos outros pares e fica abaixo do BTC em retorno, profit factor e drawdown. SOL e DOGE subiram muito no preco e a regra perdeu. XRP perdeu com drawdown de 30,45%.</p>
+<p>Segurar o BTC no mesmo intervalo rendeu 521,33%. A V1 rendeu 37,50%, com o dinheiro parado fora das operacoes. O ritmo da regra fica perto de 4% ao ano.</p>
+<h2 id="outros-ativos-mesma-janela-contas-separadas">Mesma janela, contas separadas</h2>
+<p>De 01/01/2020 a 25/09/2026, cada par com os seus 5000. A SOL fica de fora desta soma.</p>
+<ul>
+<li>BTCUSDT: 122 trades, 1.780,49, 35,61%, profit factor 1,64.
+</li>
+<li>TRXUSDT: 178 trades, 1.498,31, 29,97%, profit factor 1,38.
+</li>
+<li>BNBUSDT: 193 trades, 558,92, 11,18%, profit factor 1,19.
+</li>
+<li>ETHUSDT: 158 trades, 473,75, 9,48%, profit factor 1,19.
+</li>
+<li>DOGEUSDT: 199 trades, −712,36, −14,25%, profit factor 0,98.
+</li>
+<li>XRPUSDT: 189 trades, −731,07, −14,62%, profit factor 0,97.
+</li>
+</ul>
+<p>A soma das seis contas e 2.868,05, ou 9,56% sobre 30.000. BTC, ETH, BNB e TRX somam 4.311,47, ou 21,56% sobre 20.000. O BTC sozinho fez 35,61% sobre 5.000.</p>
+<h2 id="outros-ativos-trinta-dias">Trinta dias</h2>
+<p>De 29/08/2026 a 25/09/2026, cada conta com 5.000. So trades fechados.</p>
+<ul>
+<li>BTCUSDT: 1 trade, 96,79.
+</li>
+<li>ETHUSDT: 1 trade, 96,82.
+</li>
+<li>BNBUSDT: 2 trades, 43,88.
+</li>
+<li>DOGEUSDT: 2 trades, 43,85.
+</li>
+<li>TRXUSDT: 1 trade, −53,03.
+</li>
+<li>XRPUSDT: 4 trades, −62,03.
+</li>
+<li>SOLUSDT: 2 trades, −105,95.
+</li>
+</ul>
+<p>BTC, ETH e SOL somam 87,67. Sobre 15.000, 0,58%. O BTC sozinho fez 1,94% sobre 5.000. Sem a SOL, as outras seis somam 166,28, ou 0,55% sobre 30.000. BTC, ETH e BNB abriram em 29/08/2026 as 15:00 UTC. Uma posicao so nao recolhe os tres.</p>
+<h2 id="outros-ativos-decisao">Decisao</h2>
+<p>O caminho do robo continua a V1 em BTCUSDT. Os outros pares permanecem medidos e fora da curva oficial. O alvo de cada trade continua +10%, cerca de 97 USDT numa conta de 5.000. Juntar pares nao aumenta esse alvo.</p>
+<p>Os filtros de quantidade desses pares podem existir na tabela <code>symbols</code> para um teste isolado futuro. Isso nao os coloca na operacao.</p>
+<h2 id="outros-ativos-fora-de-escopo">Fora de escopo</h2>
+<p>Misturar capital, retunar stop, RSI ou gatilho por causa de outro par, e qualquer ordem.</p>
 </article>
     </main>
   </div>

@@ -14,10 +14,14 @@ Rodar a mesma estrategia e o mesmo risco sobre candles historicos e imprimir o r
 - Perda diaria de 2% pausa entradas novas e ainda permite sair da posicao aberta.
 - Uma saida no stop abre cooldown de 6 horas para novas entradas.
 - O relatorio mostra trades, wins, losses, win rate, gross, fees, slippage, net, return, max drawdown, profit factor, avg trade, avg winner, avg loser e expectancy.
+- O relatorio mostra um funil: candles, tendencia 4h, pullback, RSI, recuperacao e entradas aceitas pelo risco. Uma etapa so conta o candle que passou em todas as anteriores. Volume e resistencia nao entram nesta versao.
+- O relatorio separa risco planejado, perda realizada e gap. Gap e a distancia alem do stop quando a saida preenche no open.
+- Janelas independentes recomecam em 5000. O intervalo continuo de `2024-01-01` a `2026-09-25` usa uma unica curva de capital.
+- Cada janela aquece 120 dias antes do inicio e so conta operacao dentro do periodo.
 - Profit factor = lucro bruto / abs(prejuizo bruto). Sem prejuizo, o fator fica indisponivel.
 - Expectancy = probabilidade de ganho * media dos ganhos - probabilidade de perda * media das perdas (perda em valor positivo).
 - Treino e `2024-01-01` a `2025-12-31`. Validacao e `2026-01-01` a `2026-09-25`. A regra fica congelada no treino. Nao existe busca de parametros.
-- Paper, testnet e live exigem `VALIDATION_PASSED=true` depois que a validacao fecha com net positivo. Backtest nao exige o flag.
+- Paper local nao envia ordem e nao exige `VALIDATION_PASSED`. Testnet e live exigem o flag ligado a mao. O caminho esta na spec da ordem real.
 
 ## Uso
 

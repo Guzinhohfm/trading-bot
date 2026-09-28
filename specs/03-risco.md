@@ -2,16 +2,17 @@
 
 ## Objetivo
 
-Impedir que um sinal BUY vire uma operacao inadequada e calcular stop, take profit e tamanho pelo risco. O robo opera so BTCUSDT.
+Impedir que um sinal BUY vire uma operacao inadequada e calcular stop, take profit e tamanho pelo risco. O robo opera so BTCUSDT. Medidas em outros pares estao em `specs/07-ativos.md` e nao alteram este contrato.
 
 ## Invariantes
 
 - `stop_distance = entry * 5%`
 - `stop = entry - stop_distance` para long
-- `take_profit = entry + stop_distance * 2` (alvo 2 para 1)
+- `take_profit = entry + stop_distance * 2` (alvo 2 para 1, +10%)
 - `risk_amount = capital * 1%`
 - `position_size = min(risk_amount / 0.05, capital disponivel)`
 - Exemplo: entrada 100000, capital 5000 produzem stop 95000, take profit 110000 e tamanho 1000.
+- O risco planejado e a perda se o stop for respeitado, antes de taxa e slippage. Gap, taxa e slippage podem fazer a perda realizada passar desse valor.
 - Rejeita a entrada quando ha posicao aberta no ativo, perda diaria no limite, meta diaria batida, kill switch, capital insuficiente ou stop invalido (`entry <= stop` depois de alinhar o tick).
 - Perda diaria = P&L realizado do dia UTC + P&L nao realizado. Pausa novas entradas quando `daily_pnl <= -2%` do patrimonio no inicio do dia UTC. Posicao ja aberta continua podendo sair.
 - Depois de uma saida no stop, novas entradas esperam 6 horas.

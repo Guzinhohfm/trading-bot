@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir \
     "pydantic-settings>=2.3" \
     "pandas>=2.2" \
     "numpy>=1.26" \
-    "pytest>=8.2"
+    "pytest>=8.2" \
+    "psycopg[binary]>=3.2"
 
 ENV PYTHONPATH=/app
 ENV PYTHONDONTWRITEBYTECODE=1

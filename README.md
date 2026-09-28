@@ -1,14 +1,14 @@
 # Trading bot
 
-Robo long-only de BTCUSDT. Calcula indicadores, a estrategia EMA + RSI + volume, o risco e um backtest. Nao envia ordem real.
+Robo long-only de BTCUSDT. Calcula indicadores, a estrategia de tendencia no 4h e pullback no 1h, o risco e um backtest. Nao envia ordem real.
 
-Stop de 5% do preco, alvo de 10%, risco de 1% por trade e pausa do dia em -2%. Depois de um stop, o robo espera 6 horas. A tendencia vem do candle de 4 horas ja fechado; a entrada, do candle de 1 hora. Paper e testnet so depois da validacao de 2026 fechar positiva, com a regra congelada em 2024-2025.
+Stop de 5% do preco, alvo de 10% (2 para 1), risco de 1% por trade e pausa do dia em -2%. Depois de um stop, o robo espera 6 horas. A tendencia vem do candle de 4 horas ja fechado; a entrada, do candle de 1 hora, depois que o candle anterior tocou a EMA20 e o atual fechou acima dela e da maxima anterior. O caminho ate uma ordem real esta em `specs/06-ate-a-ordem-real.md`. O passo atual e o paper residente de BTCUSDT, sem envio.
 
 Parametros iniciais de pesquisa, sem promessa de resultado.
 
 ## Documentacao
 
-As regras estao em `specs/`. O HTML compilado fica em `docs/index.html`. Depois de mudar um Markdown:
+As regras estao em `specs/`. As medidas da V1 e dos outros pares estao em `docs/relatorio-estrategia-v1.md` e em `specs/07-ativos.md`. O simbolo oficial continua BTCUSDT. O HTML compilado fica em `docs/index.html`. Depois de mudar um Markdown:
 
 ```text
 python scripts/build_docs.py
@@ -42,11 +42,15 @@ O Postgres aplica `db/schema.sql` na primeira criacao do volume.
 
 No `.env`:
 
-- `MODE=backtest` para pesquisa
-- `VALIDATION_PASSED=false` ate a validacao de 2026 fechar no positivo
-- `LIVE_ENABLED=false` ate uma ordem real ser autorizada de proposito
+- `MODE=backtest` para pesquisa. `paper` relê um CSV e nao envia ordem.
+- `VALIDATION_PASSED=false`. Testnet e live continuam recusados.
+- `LIVE_ENABLED=false` ate uma ordem real ser autorizada de proposito.
 
-Paper, testnet e live recusam subir sem `VALIDATION_PASSED=true`. Live ainda exige `LIVE_ENABLED=true`.
+```text
+docker compose run --rm --no-deps app python -m app.main paper --symbol BTCUSDT --csv data/BTCUSDT-5m.csv --start 2026-01-01 --end 2026-09-25 --capital 5000
+docker compose run --rm app python -m app.main sync-public --symbol BTCUSDT --days 7 --capital 5000
+docker compose up -d paper
+```
 
 ## CSV de backtest
 

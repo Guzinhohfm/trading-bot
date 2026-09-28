@@ -26,5 +26,31 @@ services:
       - .:/app
     command: ["pytest", "-q"]
 
+  paper:
+    image: trading-bot:py312
+    env_file: .env
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command:
+      [
+        "python",
+        "-u",
+        "-m",
+        "app.main",
+        "sync-public",
+        "--resident",
+        "--symbol",
+        "BTCUSDT",
+        "--days",
+        "30",
+        "--capital",
+        "5000",
+      ]
+
 volumes:
   pgdata:

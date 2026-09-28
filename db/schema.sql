@@ -140,7 +140,11 @@ INSERT INTO symbols (symbol, base_asset, quote_asset, tick_size, step_size, min_
 VALUES
   ('BTCUSDT', 'BTC', 'USDT', 0.01, 0.00001, 0.00001, 5),
   ('ETHUSDT', 'ETH', 'USDT', 0.01, 0.0001, 0.0001, 5),
-  ('SOLUSDT', 'SOL', 'USDT', 0.01, 0.001, 0.001, 5);
+  ('SOLUSDT', 'SOL', 'USDT', 0.01, 0.001, 0.001, 5),
+  ('BNBUSDT', 'BNB', 'USDT', 0.01, 0.001, 0.001, 5),
+  ('XRPUSDT', 'XRP', 'USDT', 0.0001, 0.1, 0.1, 5),
+  ('TRXUSDT', 'TRX', 'USDT', 0.0001, 0.1, 0.1, 5),
+  ('DOGEUSDT', 'DOGE', 'USDT', 0.00001, 1, 1, 1);
 
 INSERT INTO bot_runtime (mode, status, reference_capital)
 VALUES ('paper', 'paused', 5000);

@@ -15,6 +15,7 @@ def test_defaults_match_the_spec() -> None:
     assert settings.rsi_min == Decimal("40")
     assert settings.slippage == Decimal("0.0005")
     assert settings.stop_pct == Decimal("0.05")
+    assert settings.reward_multiple == Decimal("2")
     assert settings.max_daily_loss == Decimal("0.02")
     assert settings.cooldown_hours == 6
     assert settings.validation_passed is False
@@ -23,11 +24,12 @@ def test_defaults_match_the_spec() -> None:
 
 
 def test_forward_modes_require_validation_then_live_flag() -> None:
-    with pytest.raises(RuntimeError, match="VALIDATION_PASSED"):
-        get_settings(mode=Mode.PAPER).assert_forward_allowed()
+    get_settings(mode=Mode.PAPER).assert_forward_allowed()
     with pytest.raises(RuntimeError, match="VALIDATION_PASSED"):
         get_settings(mode=Mode.TESTNET).assert_forward_allowed()
-    get_settings(mode=Mode.PAPER, validation_passed=True).assert_forward_allowed()
+    with pytest.raises(RuntimeError, match="VALIDATION_PASSED"):
+        get_settings(mode=Mode.LIVE).assert_forward_allowed()
+    get_settings(mode=Mode.TESTNET, validation_passed=True).assert_forward_allowed()
     with pytest.raises(RuntimeError, match="LIVE_ENABLED"):
         get_settings(mode=Mode.LIVE, validation_passed=True, live_enabled=False).assert_forward_allowed()
     get_settings(mode=Mode.LIVE, validation_passed=True, live_enabled=True).assert_forward_allowed()

@@ -9,6 +9,7 @@ dependencies = [
   "pydantic-settings>=2.3",
   "pandas>=2.2",
   "numpy>=1.26",
+  "psycopg[binary]>=3.2",
 ]
 
 [project.optional-dependencies]

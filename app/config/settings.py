@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     volume_period: int = 20
     price_distance_max: Decimal = Decimal("0.015")
     volume_factor: Decimal = Decimal("1.1")
+    require_volume: bool = False
+    require_resistance: bool = False
     stop_atr_multiplier: Decimal = Decimal("1.5")
     stop_pct: Decimal = Decimal("0.05")
     min_stop_pct: Decimal = Decimal("0.05")
@@ -37,6 +39,15 @@ class Settings(BaseSettings):
     max_daily_loss: Decimal = Decimal("0.02")
     daily_profit_target: Decimal = Decimal("1")
     cooldown_hours: int = 6
+    entry_trigger: str = "previous_high"
+    trend_hours: int = 4
+    require_daily_trend: bool = False
+    trend_separation_min: Decimal = Decimal("0")
+    ema_slope_min: Decimal = Decimal("0")
+    require_rsi_rising: bool = False
+    candle_quality: str = "off"
+    atr_pct_min: Decimal | None = None
+    atr_pct_max: Decimal | None = None
     fee_rate: Decimal = Decimal("0.001")
     slippage: Decimal = Decimal("0.0005")
     mode: Mode = Mode.BACKTEST
@@ -66,6 +77,10 @@ class Settings(BaseSettings):
         "fee_rate",
         "slippage",
         "capital",
+        "trend_separation_min",
+        "ema_slope_min",
+        "atr_pct_min",
+        "atr_pct_max",
         "tick_size",
         "step_size",
         "min_qty",
@@ -88,12 +103,12 @@ class Settings(BaseSettings):
         self.assert_forward_allowed()
 
     def assert_forward_allowed(self) -> None:
-        if self.mode is Mode.BACKTEST:
+        if self.mode in (Mode.BACKTEST, Mode.PAPER):
             return
         if not self.validation_passed:
             raise RuntimeError(
-                "Paper, testnet e live exigem VALIDATION_PASSED=true "
-                "depois da janela de 2026 fechar no positivo, com a regra congelada."
+                "Testnet e live exigem VALIDATION_PASSED=true, ligado a mao depois do paper. "
+                "Isso nao declara a estrategia comprovada."
             )
         if self.mode is Mode.LIVE and not self.live_enabled:
             raise RuntimeError("Modo live exige LIVE_ENABLED=true.")

@@ -16,16 +16,21 @@ Transformar um candle de 1 hora fechado em `BUY` ou `HOLD` para BTCUSDT. A estra
 ## Invariantes
 
 - **BUY** somente quando todas as regras abaixo sao verdadeiras:
-  - no 4h: `EMA50 > EMA200`, `close > EMA200` e `EMA50` atual maior que a `EMA50` de 5 candles de 4h atras
-  - no 1h: `|close - EMA20| / EMA20 <= 0.015`
+  - no 4h fechado: `EMA50 > EMA200`, `close > EMA200` e `EMA50` atual maior que a `EMA50` de 5 candles de 4h atras
+  - no 1h, o candle anterior tocou ou perdeu a EMA20: `low anterior <= EMA20 anterior`
   - `40 <= RSI14 <= 55`
-  - `volume >= 1.1 * media de 20 volumes`
-  - `close > high do candle anterior` e `close > EMA20`
-  - a maxima dos ultimos 20 candles de 4h fechados e pelo menos `close * 1.10`
+  - no 1h, a recuperacao fecha: `close > EMA20` e `close > high do candle de 1h anterior`
+- A inclinacao da EMA50 e apenas `EMA50[t] > EMA50[t-5]`. Nao ha piso percentual.
+- Volume e a distancia ate a maxima recente nao entram nesta versao.
 - Posicao aberta, perda diaria e cooldown nao bloqueiam o BUY aqui. O risco e o backtest fazem isso.
 - A estrategia nao emite **SELL**. Stop e take profit fecham a operacao.
 - Qualquer regra falsa, ou indicador ausente, devolve **HOLD**.
-- Os limites de RSI 40 e 55 entram. Volume igual a 110% da media entra.
+- `explain` devolve `BUY` ou `HOLD` e marca cada regra que falhou.
+- Os limites de RSI 40 e 55 entram. Low igual a EMA20 anterior conta como toque.
+
+## Outros ativos
+
+ETH, SOL, BNB, TRX, XRP e DOGE foram medidos com esta mesma regra. O resultado esta em `specs/07-ativos.md`. Nenhum substitui BTCUSDT e nenhum muda os limites desta spec.
 
 ## Fora de escopo
 

@@ -9,7 +9,12 @@ from backtesting.data import aggregate_hours, load_candles, parse_range
 from backtesting.engine import run_backtest
 from backtesting.metrics import BacktestReport, format_report
 
-TRAIN = ("2024-01-01", "2025-12-31")
+YEARS = (
+    ("2024", "2024-01-01", "2024-12-31"),
+    ("2025", "2025-01-01", "2025-12-31"),
+    ("2026", "2026-01-01", "2026-09-25"),
+)
+CONTINUOUS = ("2024-01-01", "2026-09-25")
 VALIDATE = ("2026-01-01", "2026-09-25")
 SYMBOL = "BTCUSDT"
 
@@ -30,14 +35,16 @@ def _run(settings, strategy, start: str, end: str) -> BacktestReport:
 def main() -> int:
     settings = get_settings(capital=Decimal("5000"))
     strategy = EmaRsiAtrVolumeStrategy(settings)
-    train = _run(settings, strategy, *TRAIN)
-    validate = _run(settings, strategy, *VALIDATE)
-    print("TREINO (regra congelada)")
-    print(format_report(train))
+    reports: dict[str, BacktestReport] = {}
+    for label, start, end in YEARS:
+        reports[label] = _run(settings, strategy, start, end)
+        print(f"JANELA {label} (capital reinicia em 5000)")
+        print(format_report(reports[label]))
+        print()
+    print("CONTINUO (uma curva, 2024 a 25/09/2026)")
+    print(format_report(_run(settings, strategy, *CONTINUOUS)))
     print()
-    print("VALIDACAO")
-    print(format_report(validate))
-    print()
+    validate = reports["2026"]
     if validate.net_pnl <= 0:
         print(
             "Validacao negativa. Nao avance para paper nem testnet. "

@@ -30,6 +30,17 @@ class Order:
     created_at: datetime
 
 
+@dataclass(frozen=True)
+class TradeNote:
+    rsi: Decimal | None
+    rsi_previous: Decimal | None
+    ema_separation: Decimal | None
+    ema_slope: Decimal | None
+    atr_pct: Decimal | None
+    drawdown: Decimal
+    hour: int
+
+
 @dataclass
 class OpenPosition:
     quantity: Decimal
@@ -39,6 +50,8 @@ class OpenPosition:
     stop: Decimal
     take_profit: Decimal
     opened_at: datetime
+    planned_risk: Decimal = Decimal("0")
+    note: TradeNote | None = None
 
 
 @dataclass(frozen=True)
@@ -53,6 +66,9 @@ class ClosedTrade:
     reason: str
     opened_at: datetime
     closed_at: datetime
+    planned_risk: Decimal = Decimal("0")
+    gap_loss: Decimal = Decimal("0")
+    note: TradeNote | None = None
 
 
 class BacktestBroker:
@@ -75,6 +91,8 @@ class BacktestBroker:
         stop: Decimal,
         take_profit: Decimal,
         at: datetime,
+        planned_risk: Decimal = Decimal("0"),
+        note: TradeNote | None = None,
     ) -> tuple[OpenPosition, Order]:
         effective = market_price * (Decimal(1) + self.settings.slippage)
         notional = effective * quantity
@@ -103,6 +121,8 @@ class BacktestBroker:
             stop=stop,
             take_profit=take_profit,
             opened_at=at,
+            planned_risk=planned_risk,
+            note=note,
         )
         return position, order
 
@@ -136,6 +156,9 @@ class BacktestBroker:
         slippage = (position.entry_effective - position.entry_market) * position.quantity + exit_slippage
         fees = position.entry_fee + fee
         net = gross - fees - slippage
+        gap_loss = Decimal("0")
+        if reason == "stop" and market_price < position.stop:
+            gap_loss = (position.stop - market_price) * position.quantity
         return ClosedTrade(
             quantity=position.quantity,
             entry_market=position.entry_market,
@@ -147,6 +170,9 @@ class BacktestBroker:
             reason=reason,
             opened_at=position.opened_at,
             closed_at=at,
+            planned_risk=position.planned_risk,
+            gap_loss=gap_loss,
+            note=position.note,
         )
 
 

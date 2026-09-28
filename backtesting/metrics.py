@@ -28,6 +28,14 @@ class BacktestReport:
     avg_loser: Decimal
     expectancy: Decimal
     max_loss_streak: int
+    candles_seen: int = 0
+    buy_signals: int = 0
+    rule_failures: tuple[tuple[str, int], ...] = ()
+    funnel: tuple[tuple[str, int], ...] = ()
+    planned_risk: Decimal = Decimal("0")
+    realized_loss: Decimal = Decimal("0")
+    gap_loss: Decimal = Decimal("0")
+    closed_trades: tuple[ClosedTrade, ...] = ()
 
 
 def max_drawdown(equity: list[Decimal]) -> Decimal:
@@ -62,6 +70,11 @@ def build_report(
     initial_capital: Decimal,
     trades: list[ClosedTrade],
     equity: list[Decimal],
+    candles_seen: int = 0,
+    buy_signals: int = 0,
+    rule_failures: tuple[tuple[str, int], ...] = (),
+    funnel: tuple[tuple[str, int], ...] = (),
+    closed_trades: tuple[ClosedTrade, ...] = (),
 ) -> BacktestReport:
     wins = [trade for trade in trades if trade.net_pnl > 0]
     losses = [trade for trade in trades if trade.net_pnl < 0]
@@ -99,6 +112,14 @@ def build_report(
         avg_loser=avg_loser,
         expectancy=expectancy,
         max_loss_streak=_loss_streak(trades),
+        candles_seen=candles_seen,
+        buy_signals=buy_signals,
+        rule_failures=rule_failures,
+        closed_trades=closed_trades,
+        funnel=funnel,
+        planned_risk=sum((trade.planned_risk for trade in trades), Decimal("0")),
+        realized_loss=sum((-trade.net_pnl for trade in trades if trade.net_pnl < 0), Decimal("0")),
+        gap_loss=sum((trade.gap_loss for trade in trades), Decimal("0")),
     )
 
 
@@ -124,6 +145,9 @@ def format_report(report: BacktestReport) -> str:
         f"Gross P&L:         {_money(report.gross_pnl)}",
         f"Fees:              {_money(report.fees)}",
         f"Slippage:          {_money(report.slippage)}",
+        f"Risco planejado:   {_money(report.planned_risk)}",
+        f"Perda realizada:   {_money(report.realized_loss)}",
+        f"Gap:               {_money(report.gap_loss)}",
         "",
         f"Net P&L:           {_money(report.net_pnl)}",
         "",
@@ -139,9 +163,81 @@ def format_report(report: BacktestReport) -> str:
         f"Avg Loser:         {_money(report.avg_loser)}",
         f"Expectancy:        {_money(report.expectancy)}",
         f"Maior sequencia:   {report.max_loss_streak} perdas",
+        *_rule_lines(report),
+        *_funnel_lines(report),
         "══════════════════════════════════",
     ]
     return "\n".join(lines)
+
+
+_RULE_LABELS = {
+    "ema50_acima_ema200": "EMA50 > EMA200",
+    "close_4h_acima_ema200": "Close 4h > EMA200",
+    "ema50_subindo": "EMA50 subindo",
+    "pullback_toca_ema20": "Candle anterior tocou a EMA20",
+    "rsi_na_faixa": "RSI 40–55",
+    "close_acima_ema20": "Close > EMA20",
+    "candle_positivo": "Candle positivo",
+    "close_acima_maxima": "Close > máxima anterior",
+    "volume_acima_media": "Volume >= 110% da média",
+    "espaco_ate_alvo": "Espaço até o alvo de 10%",
+    "posicao_aberta": "Posição aberta",
+    "cooldown": "Cooldown",
+    "daily_loss": "Perda diária",
+    "daily_profit": "Meta diária",
+    "kill_switch": "Kill switch",
+    "no_capital": "Sem capital",
+    "invalid_stop": "Stop inválido",
+}
+
+
+_FUNNEL_LABELS = {
+    "trend_4h": "Tendência 4h",
+    "pullback": "Pullback",
+    "rsi": "RSI 40–55",
+    "recovery": "Recuperação",
+    "volume": "Volume >= 110% da média",
+    "resistance": "Espaço até o alvo de 10%",
+    "entries": "Risco aceitou",
+}
+
+
+def _funnel_lines(report: BacktestReport) -> list[str]:
+    if not report.candles_seen and not report.funnel:
+        return []
+    lines = ["", "Funil", f"  {'Candles 1h':<24} {report.candles_seen}"]
+    for code, count in report.funnel:
+        label = _FUNNEL_LABELS.get(code, code)
+        lines.append(f"  {label:<24} {count}")
+    lines.append(f"  {'Trades':<24} {report.trades}")
+    present = {code for code, _count in report.funnel}
+    skipped = []
+    if "volume" not in present:
+        skipped.append("Volume")
+    if "resistance" not in present:
+        skipped.append("Resistência")
+    if len(skipped) == 1:
+        lines.append(f"  {skipped[0]} não filtra esta versão.")
+    elif skipped:
+        lines.append(f"  {' e '.join(skipped)} não filtram esta versão.")
+    return lines
+
+
+def _rule_lines(report: BacktestReport) -> list[str]:
+    if not report.candles_seen and not report.rule_failures:
+        return []
+    lines = [
+        "",
+        f"Candles lidos:     {report.candles_seen}",
+        f"Sinais BUY:        {report.buy_signals}",
+    ]
+    if report.rule_failures:
+        lines.append("")
+        lines.append("Condições que falharam:")
+        for code, count in report.rule_failures:
+            label = _RULE_LABELS.get(code, code)
+            lines.append(f"  {label:<24} {count}")
+    return lines
 
 
 def _loss_streak(trades: list[ClosedTrade]) -> int:
