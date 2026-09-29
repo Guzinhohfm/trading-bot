@@ -52,6 +52,8 @@ docker compose run --rm app python -m app.main sync-public --symbol BTCUSDT --da
 docker compose up -d paper
 ```
 
+O aviso no Telegram e opcional. Sem token, o paper segue igual e nao envia mensagem. Para ligar: crie o bot com `@BotFather` (`/newbot`), envie `/start` para ele, copie o `chat.id` em `https://api.telegram.org/botSEU_TOKEN/getUpdates`, preencha `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` no `.env` e rode `docker compose restart paper`. A primeira leitura so marca o diario atual. O passo a passo ate a ordem real esta em `specs/06-ate-a-ordem-real.md`.
+
 ## CSV de backtest
 
 Colunas: `timestamp,open,high,low,close,volume`.

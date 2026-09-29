@@ -151,6 +151,7 @@
 <a class="nav-h2" href="#ate-a-ordem-real-objetivo">Objetivo</a>
 <a class="nav-h2" href="#ate-a-ordem-real-ordem">Ordem</a>
 <a class="nav-h2" href="#ate-a-ordem-real-invariantes">Invariantes</a>
+<a class="nav-h2" href="#ate-a-ordem-real-aviso-no-telegram">Aviso no Telegram</a>
 <a class="nav-h2" href="#ate-a-ordem-real-fora-deste-passo">Fora deste passo</a>
 <a class="nav-h1" href="#outros-ativos">Outros ativos</a>
 <a class="nav-h2" href="#outros-ativos-objetivo">Objetivo</a>
@@ -194,6 +195,7 @@ docker compose run --rm --no-deps app python -m app.main backtest --symbol BTCUS
 <pre><code>docker compose run --rm --no-deps app python -m app.main paper --symbol BTCUSDT --csv data/BTCUSDT-5m.csv --start 2026-01-01 --end 2026-09-25 --capital 5000
 docker compose run --rm app python -m app.main sync-public --symbol BTCUSDT --days 7 --capital 5000
 docker compose up -d paper</code></pre>
+<p>O aviso no Telegram e opcional. Sem token, o paper segue igual e nao envia mensagem. Para ligar: crie o bot com <code>@BotFather</code> (<code>/newbot</code>), envie <code>/start</code> para ele, copie o <code>chat.id</code> em <code>https://api.telegram.org/botSEU_TOKEN/getUpdates</code>, preencha <code>TELEGRAM_BOT_TOKEN</code> e <code>TELEGRAM_CHAT_ID</code> no <code>.env</code> e rode <code>docker compose restart paper</code>. A primeira leitura so marca o diario atual. O passo a passo ate a ordem real esta em <code>specs/06-ate-a-ordem-real.md</code>.</p>
 <h2 id="trading-bot-csv-de-backtest">CSV de backtest</h2>
 <p>Colunas: <code>timestamp,open,high,low,close,volume</code>.</p>
 <p>Os candles publicos de 5 minutos ficam em <code>data/</code>, fora do git. Para baixar de novo:</p>
@@ -389,7 +391,9 @@ docker compose up -d paper</code></pre>
 <p>Chegar a uma ordem na Binance sem pular etapa. Cada passo usa a regra V1 congelada. Nenhum passo liga <code>VALIDATION_PASSED</code> nem <code>LIVE_ENABLED</code>.</p>
 <h2 id="ate-a-ordem-real-ordem">Ordem</h2>
 <p>1. Paper local. O mesmo motor do backtest relê um CSV, simula fill, taxa e slippage, e imprime o relatorio. Nenhuma chamada de ordem. 2. Leitura publica. <code>sync-public</code> busca so candles fechados em <code>GET /api/v3/klines</code>, roda a V1 e grava candles, decisoes, trades simulados e uma linha em <code>bot_logs</code>. Sem chave e sem ordem. Repetir o comando atualiza o diario e acrescenta outra linha de resumo. 3. Paper residente. O mesmo <code>sync-public --resident</code>, em BTCUSDT. O processo espera a hora UTC fechar, espera 15 segundos e repete a leitura. Nao escolhe filtro novo. 4. Conferencia. Os trades do paper no mesmo CSV tem de bater com o backtest. 5. Observacao. O servico <code>paper</code> fica ligado por semanas, so em BTCUSDT, rejogando os ultimos 30 dias a cada hora fechada. O objetivo e ver se o diario ao vivo continua igual ao backtest. Uma semana boa nao autoriza a etapa seguinte e nao serve para trocar de ativo nem de filtro. A V1 fez cerca de 12 trades por ano, entao semanas podem fechar zero trades. 6. Testnet. Ordens assinadas apenas na URL de testnet, com <code>TESTNET_ENABLED=true</code>. Dinheiro ficticio da Binance. 7. Conta real. Chave sem permissao de saque, <code>LIVE_ENABLED=true</code> e <code>VALIDATION_PASSED=true</code>, ligados a mao, depois da testnet repetir o diario do paper.</p>
-<p>Os passos 1, 2 e 3 estao implementados. O passo 3 fica de pe enquanto o servico <code>paper</code> estiver ligado. O passo 4 ainda nao tem uma conferencia automatica separada: o paper ja usa o mesmo motor do backtest.</p>
+<p>Os passos 1, 2 e 3 estao implementados. O passo 3 fica de pe enquanto o servico <code>paper</code> estiver ligado.</p>
+<p>Os proximos passos, ainda so com BTCUSDT e sem ordem real:</p>
+<p>1. Conferencia. O trade do paper tem de bater com o backtest do mesmo candle. O paper ja usa esse motor. A checagem automatica separada ainda nao existe. 2. Observacao por semanas. O servico <code>paper</code> faz isso. Uma semana boa nao libera a etapa seguinte. 3. Testnet. Ordens assinadas so na URL de teste da Binance, com dinheiro ficticio. 4. Conta real. Chave sem permissao de saque, e so depois de ligar <code>LIVE_ENABLED</code> e <code>VALIDATION_PASSED</code> a mao.</p>
 <h2 id="ate-a-ordem-real-invariantes">Invariantes</h2>
 <ul>
 <li>Paper nao envia ordem. O gateway de paper recusa <code>submit</code>.
@@ -405,6 +409,10 @@ docker compose up -d paper</code></pre>
 <li>A estrategia, o stop de 5%, o alvo de 10% e o risco de 1% sao os da V1. Este caminho nao escolhe filtro novo.
 </li>
 </ul>
+<h2 id="ate-a-ordem-real-aviso-no-telegram">Aviso no Telegram</h2>
+<p>Opcional. Cada compra nova ou saida fechada do paper manda uma mensagem. A primeira leitura so marca o diario que ja existe, entao o mesmo trade nao chega toda hora. Sem token, nada e enviado. Isso nao manda ordem na Binance e nao adianta a testnet.</p>
+<p>Para ligar:</p>
+<p>1. No Telegram, fale com <code>@BotFather</code>, use <code>/newbot</code> e copie o token. 2. Abra o bot e envie <code>/start</code>. 3. Abra <code>https://api.telegram.org/botSEU_TOKEN/getUpdates</code> e copie o <code>chat.id</code>. 4. Coloque os dois no <code>.env</code>, em <code>TELEGRAM_BOT_TOKEN</code> e <code>TELEGRAM_CHAT_ID</code>. 5. Rode <code>docker compose restart paper</code>.</p>
 <h2 id="ate-a-ordem-real-fora-deste-passo">Fora deste passo</h2>
 <p>Dashboard, chave de API, URL de testnet e qualquer <code>POST /api/v3/order</code>.</p>
 </article>

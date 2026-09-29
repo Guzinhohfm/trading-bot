@@ -44,6 +44,42 @@ def save_public_run(
     return {"candles": candle_count, "decisions": decision_count, "trades": trade_count}
 
 
+def load_notice_keys(settings: Settings) -> set[str]:
+    import psycopg
+
+    with psycopg.connect(**connection_kwargs(settings.database_url)) as conn:
+        _ensure_notice_table(conn)
+        rows = conn.execute("SELECT event_key FROM telegram_notices").fetchall()
+        conn.commit()
+    return {row[0] for row in rows}
+
+
+def save_notice_keys(settings: Settings, keys: list[str]) -> None:
+    import psycopg
+
+    if not keys:
+        return
+    with psycopg.connect(**connection_kwargs(settings.database_url)) as conn:
+        _ensure_notice_table(conn)
+        conn.cursor().executemany(
+            "INSERT INTO telegram_notices (event_key) VALUES (%s) ON CONFLICT (event_key) DO NOTHING",
+            [(key,) for key in keys],
+        )
+        conn.commit()
+
+
+def _ensure_notice_table(conn) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS telegram_notices (
+          id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+          event_key text NOT NULL UNIQUE,
+          sent_at timestamptz NOT NULL DEFAULT now()
+        )
+        """
+    )
+
+
 def _ensure_decision_key(conn) -> None:
     conn.execute(
         """

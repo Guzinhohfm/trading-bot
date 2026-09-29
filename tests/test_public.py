@@ -137,6 +137,7 @@ def test_sync_public_stores_the_run_and_sends_no_order(capsys: pytest.CaptureFix
     monkeypatch.setattr("app.main.fetch_closed_klines", _fetch)
     monkeypatch.setattr("app.main.public_window", lambda days, now: (start, start + timedelta(hours=4), start))
     monkeypatch.setattr("app.main.save_public_run", _save)
+    monkeypatch.setattr("app.main.notify_new_operations", lambda *args, **kwargs: 0)
     code = main(["sync-public", "--symbol", "BTCUSDT", "--days", "1", "--capital", "5000"])
     text = capsys.readouterr().out
     assert code == 0

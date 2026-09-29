@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from app.config.settings import Mode, Settings
 from app.market.public_klines import fetch_closed_klines, public_window
+from app.notify.telegram import notify_new_operations
 from app.paper.replay import run_paper
 from app.paper.resident import run_resident
 from app.storage.paper_store import save_public_run
@@ -89,6 +90,7 @@ def _sync_public(settings: Settings, args: argparse.Namespace) -> int:
         f"Banco: {saved['candles']} candles, {saved['decisions']} decisoes, {saved['trades']} trades."
     )
     print("Paper: nenhuma ordem enviada.")
+    notify_new_operations(settings, args.symbol, report)
     return 0
 
 

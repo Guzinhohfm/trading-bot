@@ -462,3 +462,24 @@ A soma das seis contas é 2.868,05, ou 9,56% sobre 30.000. BTC, ETH, BNB e TRX s
 Por capital aplicado, segurar o BTC foi o maior resultado deste histórico: 521,33% de 01/01/2018 a 26/09/2026. A V1 no mesmo intervalo rendeu 37,50%.
 
 Dentro do robô, a versão mais rentável é a V1 só no BTCUSDT: 1.875,17, profit factor 1,53, expectativa 11,94 e drawdown 9,06%. O caminho oficial continua esse. Os outros pares ficam medidos e fora da curva. Paper, testnet e live continuam desligados. O serviço de paper residente observa o BTC por semanas para conferir o diário, e uma semana boa não autoriza ordem.
+
+## Próximos passos
+
+Ainda só com BTCUSDT, e sem ordem real:
+
+1. Conferência. O trade do paper tem de bater com o backtest do mesmo candle. O paper já usa esse motor. A checagem automática separada ainda não existe.
+2. Observação por semanas. O serviço que está ligado faz isso. Uma semana boa não libera a etapa seguinte.
+3. Testnet. Ordens assinadas só na URL de teste da Binance, com dinheiro fictício.
+4. Conta real. Chave sem permissão de saque, e só depois de ligar `LIVE_ENABLED` e `VALIDATION_PASSED` à mão.
+
+## Aviso no Telegram
+
+O paper pode mandar uma mensagem quando uma compra nova abre ou quando uma saída fecha. A primeira leitura só marca o diário que já existe, então o trade de agosto não chega toda hora. Sem token, nada é enviado. Isso não envia ordem na Binance e não adianta a testnet.
+
+Para ligar:
+
+1. No Telegram, fale com o `@BotFather`, use `/newbot` e copie o token.
+2. Abra o bot e envie `/start`.
+3. Abra `https://api.telegram.org/botSEU_TOKEN/getUpdates` e copie o `chat.id`.
+4. Coloque os dois no `.env`, em `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+5. Rode `docker compose restart paper`.

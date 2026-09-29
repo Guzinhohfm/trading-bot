@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from backtesting.broker import ClosedTrade
+from backtesting.broker import ClosedTrade, OpenPosition
 
 
 @dataclass(frozen=True)
@@ -36,6 +36,7 @@ class BacktestReport:
     realized_loss: Decimal = Decimal("0")
     gap_loss: Decimal = Decimal("0")
     closed_trades: tuple[ClosedTrade, ...] = ()
+    open_position: OpenPosition | None = None
 
 
 def max_drawdown(equity: list[Decimal]) -> Decimal:
@@ -75,6 +76,7 @@ def build_report(
     rule_failures: tuple[tuple[str, int], ...] = (),
     funnel: tuple[tuple[str, int], ...] = (),
     closed_trades: tuple[ClosedTrade, ...] = (),
+    open_position: OpenPosition | None = None,
 ) -> BacktestReport:
     wins = [trade for trade in trades if trade.net_pnl > 0]
     losses = [trade for trade in trades if trade.net_pnl < 0]
@@ -116,6 +118,7 @@ def build_report(
         buy_signals=buy_signals,
         rule_failures=rule_failures,
         closed_trades=closed_trades,
+        open_position=open_position,
         funnel=funnel,
         planned_risk=sum((trade.planned_risk for trade in trades), Decimal("0")),
         realized_loss=sum((-trade.net_pnl for trade in trades if trade.net_pnl < 0), Decimal("0")),

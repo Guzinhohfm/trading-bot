@@ -136,6 +136,12 @@ CREATE TABLE bot_logs (
 
 CREATE INDEX bot_logs_created_at_idx ON bot_logs (created_at DESC);
 
+CREATE TABLE telegram_notices (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  event_key  text NOT NULL UNIQUE,
+  sent_at    timestamptz NOT NULL DEFAULT now()
+);
+
 INSERT INTO symbols (symbol, base_asset, quote_asset, tick_size, step_size, min_qty, min_notional)
 VALUES
   ('BTCUSDT', 'BTC', 'USDT', 0.01, 0.00001, 0.00001, 5),

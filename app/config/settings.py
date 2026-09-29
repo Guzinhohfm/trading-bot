@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://trading:change-me@db:5432/trading"
     binance_api_key: str = ""
     binance_secret_key: str = ""
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
     tick_size: Decimal = Decimal("0.01")
     step_size: Decimal = Decimal("0.00001")
     min_qty: Decimal = Decimal("0.00001")

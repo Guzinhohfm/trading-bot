@@ -350,6 +350,7 @@ def run_backtest(
         candles_seen=candles_seen,
         buy_signals=buy_signals,
         closed_trades=tuple(closed),
+        open_position=position,
         rule_failures=_ordered_failures(failures),
         funnel=_funnel_rows(funnel, entries_opened, candles_seen),
     )

@@ -14,7 +14,14 @@ Chegar a uma ordem na Binance sem pular etapa. Cada passo usa a regra V1 congela
 6. Testnet. Ordens assinadas apenas na URL de testnet, com `TESTNET_ENABLED=true`. Dinheiro ficticio da Binance.
 7. Conta real. Chave sem permissao de saque, `LIVE_ENABLED=true` e `VALIDATION_PASSED=true`, ligados a mao, depois da testnet repetir o diario do paper.
 
-Os passos 1, 2 e 3 estao implementados. O passo 3 fica de pe enquanto o servico `paper` estiver ligado. O passo 4 ainda nao tem uma conferencia automatica separada: o paper ja usa o mesmo motor do backtest.
+Os passos 1, 2 e 3 estao implementados. O passo 3 fica de pe enquanto o servico `paper` estiver ligado.
+
+Os proximos passos, ainda so com BTCUSDT e sem ordem real:
+
+1. Conferencia. O trade do paper tem de bater com o backtest do mesmo candle. O paper ja usa esse motor. A checagem automatica separada ainda nao existe.
+2. Observacao por semanas. O servico `paper` faz isso. Uma semana boa nao libera a etapa seguinte.
+3. Testnet. Ordens assinadas so na URL de teste da Binance, com dinheiro ficticio.
+4. Conta real. Chave sem permissao de saque, e so depois de ligar `LIVE_ENABLED` e `VALIDATION_PASSED` a mao.
 
 ## Invariantes
 
@@ -24,6 +31,18 @@ Os passos 1, 2 e 3 estao implementados. O passo 3 fica de pe enquanto o servico 
 - Live continua recusado sem `LIVE_ENABLED=true`.
 - `MODE=live` nao pode executar o comando de paper.
 - A estrategia, o stop de 5%, o alvo de 10% e o risco de 1% sao os da V1. Este caminho nao escolhe filtro novo.
+
+## Aviso no Telegram
+
+Opcional. Cada compra nova ou saida fechada do paper manda uma mensagem. A primeira leitura so marca o diario que ja existe, entao o mesmo trade nao chega toda hora. Sem token, nada e enviado. Isso nao manda ordem na Binance e nao adianta a testnet.
+
+Para ligar:
+
+1. No Telegram, fale com `@BotFather`, use `/newbot` e copie o token.
+2. Abra o bot e envie `/start`.
+3. Abra `https://api.telegram.org/botSEU_TOKEN/getUpdates` e copie o `chat.id`.
+4. Coloque os dois no `.env`, em `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+5. Rode `docker compose restart paper`.
 
 ## Fora deste passo
 
